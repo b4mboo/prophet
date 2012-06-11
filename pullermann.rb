@@ -2,7 +2,7 @@
 # TODO: loop through all open pull requests.
 
 # navigate into sub-directory if necessary
-`cd /home/jenkins/workspace/glue`
+`cd /home/jenkins/workspace/HappyCustomerMerge/glue`
 
 # fetch the merge-commit for the pull request.
 # NOTE: this automatically created by GitHub.
