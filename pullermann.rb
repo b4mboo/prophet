@@ -12,7 +12,7 @@ dirname = "/home/jenkins/workspace/HappyCustomerMerge/glue"
 data = JSON.parse(open("https://github.com/api/v2/json/pulls/#{project}", 
                        :http_basic_authentication=>[username, password]).read)
 data["pulls"].each do |pull|
-  id = pull.number
+  id = pull["number"]
   # navigate into sub-directory if necessary
   Dir.chdir dirname do
 
