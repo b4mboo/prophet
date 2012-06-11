@@ -1,13 +1,13 @@
 #!/usr/bin/env ruby
 # TODO: loop through all open pull requests.
 
+# navigate into sub-directory if necessary
+`cd /home/jenkins/workspace/glue`
+
 # fetch the merge-commit for the pull request.
 # NOTE: this automatically created by GitHub.
 `git fetch origin refs/pull/104/merge:`
 `git checkout FETCH_HEAD`
-
-# navigate into sub-directory if necessary
-`cd glue`
 
 # setup project with latest code.
 `bundle install`
