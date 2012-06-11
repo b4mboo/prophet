@@ -19,16 +19,13 @@ Dir.chdir('/home/jenkins/workspace/HappyCustomerMerge/glue') do
   # setup jenkins and run tests.
   `rake -f /usr/lib/ruby/gems/1.9.1/gems/ci_reporter-1.7.0/stub.rake`
   `rake ci:setup:testunit`
-  `rake test:all`
+  system("rake test:all")
 
   # comment on the pull request on GitHub.
-  `if [ $? == 0 ]; then
-    # GitHub account for success: suse-jenkins-success / galileo224
-    curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "suse-jenkins-success:galileo224" -X POST 
-  https://api.github.com/repos/SUSE/happy-customer/issues/104/comments;
+  if system
+    `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "suse-jenkins-success:galileo224" -X POST https://api.github.com/repos/SUSE/happy-customer/issues/104/comments;`
   else
-    # GitHub account for failure: suse-jenkins-fail / galileo224
-    curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "suse-jenkins-fail:galileo224" -X POST 
-  https://api.github.com/repos/SUSE/happy-customer/issues/104/comments;
-  fi`
+    `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "suse-jenkins-fail:galileo224" -X POST https://api.github.com/repos/SUSE/happy-customer/issues/104/comments;`
+  end
+
 end
