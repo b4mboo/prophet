@@ -4,10 +4,31 @@ require 'rubygems'
 require 'open-uri'
 require 'json'
 
-username = "suse-jenkins-success"
-password = "galileo224"
-project = "SUSE/happy-customer"
-dirname = "/home/jenkins/workspace/HappyCustomerMerge/glue"
+
+require 'optparse'
+username = ""
+password = ""
+project = ""
+dirname = ""
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: pullermann.rb  [options]"
+  opts.on("-u", "--username USERNAME", "username") do |u|
+    username = u
+  end
+  opts.on("-p", "--password PASSWORD", "password") do |p|
+    password = p
+  end
+  opts.on("-m", "--project PROJECt", "project name, for example foo/bar") do |p|
+    project = p
+  end
+  opts.on("-d", "--dirname DIRNAME", "project dirname where it is already checked out") do |d|
+    dirname = d
+  end
+
+end.parse!
+
+
 
 data = JSON.parse(open("https://github.com/api/v2/json/pulls/#{project}", 
                        :http_basic_authentication=>[username, password]).read)
@@ -32,7 +53,7 @@ data["pulls"].each do |pull|
     system("rake test:all")
 
     # comment on the pull request on GitHub.
-    if system
+    if system 
       `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{username}:#{password}" -X POST https://api.github.com/repos/#{project}/issues/104/comments;`
     else
       `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{username}:#{password}" -X POST https://api.github.com/repos/#{project}/issues/104/comments;`
