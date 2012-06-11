@@ -4,7 +4,7 @@
 puts "Running pullermann in #{Dir.pwd}"
 
 # navigate into sub-directory if necessary
-Dir.chdir('cd /home/jenkins/workspace/HappyCustomerMerge/glue') do
+Dir.chdir('/home/jenkins/workspace/HappyCustomerMerge/glue') do
 
   # fetch the merge-commit for the pull request.
   # NOTE: this automatically created by GitHub.
