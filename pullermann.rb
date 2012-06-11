@@ -50,10 +50,10 @@ data["pulls"].each do |pull|
     # setup jenkins and run tests.
     `rake -f /usr/lib/ruby/gems/1.9.1/gems/ci_reporter-1.7.0/stub.rake`
     `rake ci:setup:testunit`
-    system("rake test:all")
+    result = system("rake test:all")
 
     # comment on the pull request on GitHub.
-    if system 
+    if result 
       `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{username}:#{password}" -X POST https://api.github.com/repos/#{project}/issues/104/comments;`
     else
       `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{username}:#{password}" -X POST https://api.github.com/repos/#{project}/issues/104/comments;`
