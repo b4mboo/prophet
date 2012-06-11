@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 # TODO: loop through all open pull requests.
 
+puts "Running pullermann in #{Dir.pwd}"
+
 # navigate into sub-directory if necessary
 Dir.chdir('cd /home/jenkins/workspace/HappyCustomerMerge/glue') do
 
