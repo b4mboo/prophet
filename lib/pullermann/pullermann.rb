@@ -92,11 +92,33 @@ class Pullermann
       `rake ci:setup:testunit`
     end
 
+    #Convert system calls to a task array to be used in cheetah
+    def task_array(main_task)
+      tasks = main_task.split("\n")
+      lines = []
+      tasks.each do |task|
+        lines = lines + task.split(";")
+      end
+      result = []
+      lines.each do |line|
+       result << line.split
+      end
+     return result 
+    end
+
     # Run specified tests for the project.
     def run_tests
       # FIXME: Move to a configurable 'run' block.
-      main_task = "rake test:all"
-      @result = system(main_task)
+      main_task = "echo 'running tests ...'\nrake test:all;echo 'done'"
+      main_task = task_array(main_task)
+      begin
+        main_task.each do |task|
+          Cheetah.run(task)
+        end
+        result = true
+      rescue
+        result = false
+      end
     end
 
     # Output the result to a comment on the pull request on GitHub.
