@@ -19,8 +19,8 @@ class Pullermann
       # Loop through all 'open' pull requests.
       pull_requests.each do |request|
         @request_id = request["number"]
-        # TODO: Parse comments (looking for comments by 'username' or 'username_fail').
-        # TODO: Jump to next iteration if source and/or target haven't change since last run.
+        # Jump to next iteration if source and/or target haven't change since last run.
+        next unless testrun_neccessary?
         fetch
         prepare
         run_tests
@@ -50,6 +50,12 @@ class Pullermann
       return pulls
     end
 
+    # Determine whether source and/or target haven't change since last run.
+    def testrun_neccessary?
+      # TODO: Parse comments (looking for comments by 'username' or 'username_fail').
+      # TODO: Respect configuration options when determining whether to run again or not.
+    end
+
     # Fetch the merge-commit for the pull request.
     def fetch
       # NOTE: This commit automatically created by 'GitHub Merge Button'.
@@ -59,7 +65,7 @@ class Pullermann
       rescue Cheetah::ExecutionFailed => e
         puts "Could not run git #{e.message}"
         puts "Standard output: #{e.stdout}"
-        puts "Error ouptut:    #{e.stderr}"
+        puts "Error output:    #{e.stderr}"
       end
     end
 
