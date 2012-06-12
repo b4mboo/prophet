@@ -103,7 +103,7 @@ class Pullermann
       lines.each do |line|
        result << line.split
       end
-     return result 
+      result
     end
 
     # Run specified tests for the project.
