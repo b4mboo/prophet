@@ -15,8 +15,9 @@ class Pullermann
     end
 
     def run
+      set_project
       # Loop through all 'open' pull requests.
-      pull_requests["pulls"].each do |request|
+      pull_requests.each do |request|
         @request_id = request["number"]
         # TODO: Parse comments (looking for comments by 'username' or 'username_fail').
         # TODO: Jump to next iteration if source and/or target haven't change since last run.
@@ -30,10 +31,23 @@ class Pullermann
 
     private
 
+    def set_project
+      #FIXME: use cheetah
+      remote = `git remote -v`
+      project = /:(.*)\.git/.match(remote)[1]
+      puts "Using github project: #{project}"
+    end
+
     def pull_requests
-      # FIXME: Use Octokit to access GitHub.
-      JSON.parse(open("https://github.com/api/v2/json/pulls/#{Pullermann.project}",
-                             :http_basic_authentication=>[Pullermann.username, Pullermann.password]).read)
+      github = Octokit::Client.new(:login => username, :password => password)
+      begin
+        github.repo project
+      rescue
+        abort 'Unable to login to github.'
+      end
+      pulls = github.pulls project, 'open'
+      puts "Found #{pulls.size} pull requests.."
+      return pulls
     end
 
     # Fetch the merge-commit for the pull request.
