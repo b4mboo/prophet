@@ -14,8 +14,8 @@ class Pullermann
     # Set default values for options.
     def initialize
       # TODO: Get username and password from git in current directory.
-      self.username = 'foo'
-      self.password = 'bar'
+      self.username = git_config['github.login']
+      self.password = git_config['github.password']
       self.username_fail = self.username
       self.password_fail = self.password
       self.rerun_on_source_change = true
@@ -100,7 +100,6 @@ class Pullermann
       # FIXME: Move to a configurable 'run' block.
       main_task = "rake test:all"
       @result = system(main_task)
-
     end
 
     # Output the result to a comment on the pull request on GitHub.
@@ -112,6 +111,22 @@ class Pullermann
       end
     end
 
+
+    # Collect git config information in a Hash for easy access.
+    # Checks '~/.gitconfig' for credentials.
+    def git_config
+      unless @git_config
+        # Read @git_config from local git config.
+        @git_config = {}
+        # TODO: Use cheetah for system calls.
+        config_list = `git config --list`
+        config_list.split("\n").each do |line|
+          key, value = line.split('=')
+          @git_config[key] = value
+        end
+      end
+      @git_config
+    end
   end
 
 end
