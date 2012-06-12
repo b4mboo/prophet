@@ -31,11 +31,12 @@ class Pullermann
       pull_requests.each do |request|
         @request_id = request["number"]
         # Jump to next iteration if source and/or target haven't change since last run.
-        next unless testrun_neccessary?
+        next unless test_run_neccessary?
         fetch
         prepare
-        run_tests
-        comment
+        # Determine if all tests pass.
+        @result = run_tests
+        comment_on_github
       end
     end
 
@@ -61,7 +62,7 @@ class Pullermann
     end
 
     # Determine whether source and/or target haven't change since last run.
-    def testrun_neccessary?
+    def test_run_neccessary?
       # TODO: Parse comments (looking for comments by 'username' or 'username_fail').
       # TODO: Respect configuration options when determining whether to run again or not.
     end
@@ -69,14 +70,20 @@ class Pullermann
     # Fetch the merge-commit for the pull request.
     def fetch
       # NOTE: This commit automatically created by 'GitHub Merge Button'.
-      begin
-        Cheetah.run("git", "fetch", "origin", "refs/pull/#{@request_id}/merge:")
-        Cheetah.run("git", "checkout", "FETCH_HEAD")
-      rescue Cheetah::ExecutionFailed => e
-        puts "Could not run git #{e.message}"
-        puts "Standard output: #{e.stdout}"
-        puts "Error output:    #{e.stderr}"
-      end
+      cheetah_run "git fetch origin refs/pull/#{@request_id}/merge:"
+      cheetah_run "git checkout FETCH_HEAD"
+    end
+
+    # Wrapper for Cheetah calls, that ensure always full output on any errors.
+    def cheetah_run(command)
+      @last_output = Cheetah.run command.split
+      true
+    rescue Cheetah::ExecutionFailed => e
+      puts "Could not run #{command}:"
+      puts  e.message
+      puts "Standard output: #{e.stdout}"
+      puts "Error output:    #{e.stderr}"
+      false
     end
 
     # Prepare project and CI (e.g. Jenkins) for the test run.
@@ -92,37 +99,19 @@ class Pullermann
       `rake ci:setup:testunit`
     end
 
-    #Convert system calls to a task array to be used in cheetah
-    def task_array(main_task)
-      tasks = main_task.split("\n")
-      lines = []
-      tasks.each do |task|
-        lines = lines + task.split(";")
-      end
-      result = []
-      lines.each do |line|
-       result << line.split
-      end
-      result
-    end
-
     # Run specified tests for the project.
     def run_tests
       # FIXME: Move to a configurable 'run' block.
-      main_task = "echo 'running tests ...'\nrake test:all;echo 'done'"
-      main_task = task_array(main_task)
-      begin
-        main_task.each do |task|
-          Cheetah.run(task)
-        end
-        @result = true
-      rescue
-        @result = false
+      tests_to_run = "echo 'running tests ...'\nrake test:all;echo 'done'"
+      tests_to_run = tests_to_run.split(%r{\n|;})
+      tests_to_run.each do |task|
+        return false unless cheetah_run(task)
       end
+      true
     end
 
     # Output the result to a comment on the pull request on GitHub.
-    def comment
+    def comment_on_github
       if @result
         `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{self.username}:#{self.password}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
       else
@@ -137,8 +126,8 @@ class Pullermann
       unless @git_config
         # Read @git_config from local git config.
         @git_config = {}
-        # TODO: Use cheetah for system calls.
-        config_list = `git config --list`
+        return [] unless cheetah_run 'git config --list'
+        config_list = @last_output
         config_list.split("\n").each do |line|
           key, value = line.split('=')
           @git_config[key] = value
