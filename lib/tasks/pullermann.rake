@@ -1,5 +1,5 @@
 desc 'Test open pull requests'
-task :prepare do
+task :pullermann do
   pull = Pullermann.new
   debugger
   puts 'Entering debug mode...'
