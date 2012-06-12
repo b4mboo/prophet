@@ -23,9 +23,14 @@ class Pullermann
 
         # Fetch the merge-commit for the pull request.
         # NOTE: This commit automatically created by 'GitHub Merge Button'.
-        # FIXME: Use cheetah for system calls.
-        `git fetch origin refs/pull/#{id}/merge:`
-        `git checkout FETCH_HEAD`
+        begin
+          Cheetah.run("git", "fetch", "origin", "refs/pull/#{id}/merge:")
+          Cheetah.run("git", "checkout", "FETCH_HEAD")
+        rescue Cheetah::ExecutionFailed => e
+          puts "Could not run git #{e.message}"
+          puts "Standard output: #{e.stdout}"
+          puts "Error ouptut:    #{e.stderr}"
+        end
 
         # FIXME: Move this to configurable 'setup' block.
           # Setup project with latest code.
