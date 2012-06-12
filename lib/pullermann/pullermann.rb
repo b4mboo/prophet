@@ -1,6 +1,13 @@
 class Pullermann
 
-  attr_accessor :username, :username_fail, :password, :password_fail, :project
+  class << self
+    attr_accessor :username, :username_fail, :password, :password_fail, :project
+  end
+
+  # Take configuration from Rails application's initializer.
+  def self.setup
+    yield self
+  end
 
   def run
     # FIXME: Use Octokit to access GHitHub.
