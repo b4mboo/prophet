@@ -31,7 +31,7 @@ class Pullermann
     private
 
     def pull_requests
-      # FIXME: Use Octokit to access GHitHub.
+      # FIXME: Use Octokit to access GitHub.
       JSON.parse(open("https://github.com/api/v2/json/pulls/#{Pullermann.project}",
                              :http_basic_authentication=>[Pullermann.username, Pullermann.password]).read)
     end
