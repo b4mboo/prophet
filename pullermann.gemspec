@@ -16,5 +16,6 @@ Gem::Specification.new do |s|
   s.description = 'Test open pull requests on GitHub hosted projects and comments on them whether tests pass or fail if the request is accepted and code is merged.'
 
   s.add_runtime_dependency 'cheetah'
+  s.add_runtime_dependency 'rspec'
   s.add_runtime_dependency 'octokit', '= 0.6.5'
 end
