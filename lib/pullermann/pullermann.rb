@@ -50,7 +50,7 @@ class Pullermann
     end
 
     def pull_requests
-      github = Octokit::Client.new(:login => username, :password => password)
+      github = Octokit::Client.new(:login => self.username, :password => self.password)
       begin
         github.repo @project
       rescue
