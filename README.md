@@ -18,6 +18,11 @@ Inside that file you can set your options like this:
     # a lot easier to spot failing test runs at first glance.
     config.username_fail = 'foo-fail'
     config.password_fail = 'baz'
-    # Specifying a project name should be obsolete in the future.
-    config.project = 'foo/bar'
+
+    # Specify when to run tests (defaults to true).
+    config.rerun_on_source_change = true
+    config.rerun_on_target_change = true
   end
+
+If you don't specify anything (or not even create an initializer), Pullermann would
+fall back to its defaults, thereby trying to take the username/password from git config.

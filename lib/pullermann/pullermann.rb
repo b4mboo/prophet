@@ -28,6 +28,8 @@ class Pullermann
     end
 
     def run
+      # Enable runs without setup step (using only defaults).
+      configure unless @project
       @github = Octokit::Client.new(:login => self.username, :password => self.password)
       begin
         @github.repo @project
