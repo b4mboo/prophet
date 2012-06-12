@@ -47,20 +47,20 @@ class Pullermann
     def set_project
       #FIXME: use cheetah
       remote = `git remote -v`
-      project = /:(.*)\.git/.match(remote)[1]
-      puts "Using github project: #{project}"
+      @project = /:(.*)\.git/.match(remote)[1]
+      puts "Using github project: #{@project}"
     end
 
     def pull_requests
       github = Octokit::Client.new(:login => username, :password => password)
       begin
-        github.repo project
+        github.repo @project
       rescue
         abort 'Unable to login to github.'
       end
-      pulls = github.pulls project, 'open'
+      pulls = github.pulls @project, 'open'
       puts "Found #{pulls.size} pull requests.."
-      return pulls
+      pulls
     end
 
     # Determine whether source and/or target haven't change since last run.
@@ -106,9 +106,9 @@ class Pullermann
     # Output the result to a comment on the pull request on GitHub.
     def comment
       if @result
-        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{self.username}:#{self.password}" -X POST https://api.github.com/repos/#{self.project}/issues/#{@request_id}/comments;`
+        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{self.username}:#{self.password}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
       else
-        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{self.username_fail}:#{self.password_fail}" -X POST https://api.github.com/repos/#{self.project}/issues/#{@request_id}/comments;`
+        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{self.username_fail}:#{self.password_fail}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
       end
     end
 
