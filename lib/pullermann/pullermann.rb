@@ -10,7 +10,7 @@ class Pullermann
                   :rerun_on_target_change,
                   :project
 
-    
+
     # Set default values for options.
     def initialize
       # TODO: Get username and password from git in current directory.
@@ -106,9 +106,9 @@ class Pullermann
     # Output the result to a comment on the pull request on GitHub.
     def comment
       if @result
-        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{Pullermann.username}:#{Pullermann.password}" -X POST https://api.github.com/repos/#{Pullermann.project}/issues/#{@request_id}/comments;`
+        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{self.username}:#{self.password}" -X POST https://api.github.com/repos/#{self.project}/issues/#{@request_id}/comments;`
       else
-        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{Pullermann.username_fail}:#{Pullermann.password_fail}" -X POST https://api.github.com/repos/#{Pullermann.project}/issues/#{@request_id}/comments;`
+        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{self.username_fail}:#{self.password_fail}" -X POST https://api.github.com/repos/#{self.project}/issues/#{@request_id}/comments;`
       end
     end
 
