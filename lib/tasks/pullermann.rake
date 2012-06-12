@@ -1,8 +1,6 @@
-namespace :pullermann do
-
-  desc 'Prepare Pullermann with some configuration values.'
-  task :prepare do
-    pull = Pullermann.new
-  end
-
+desc 'Test open pull requests'
+task :prepare do
+  pull = Pullermann.new
+  debugger
+  puts 'Entering debug mode...'
 end

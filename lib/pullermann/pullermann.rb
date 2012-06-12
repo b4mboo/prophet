@@ -1,4 +1,4 @@
-class Pullermann::Pullermann
+class Pullermann
 
   attr_accessor :username, :username_fail, :password, :password_fail, :project
 
