@@ -11,18 +11,19 @@ class Pullermann
 
 
     # Set default values for options.
-    def initialize
+    def configure
       self.username = git_config['github.login']
       self.password = git_config['github.password']
       self.username_fail = self.username
       self.password_fail = self.password
       self.rerun_on_source_change = true
       self.rerun_on_target_change = true
-      @project = set_project
+      set_project
     end
 
     # Take configuration from Rails application's initializer.
     def setup
+      configure
       yield self
     end
 
@@ -100,27 +101,15 @@ class Pullermann
           puts "No git refs found in pullermann comments..."
         end
       end
-      return false
+      false
     end
 
 
     # Fetch the merge-commit for the pull request.
     def fetch
       # NOTE: This commit automatically created by 'GitHub Merge Button'.
-      cheetah_run "git fetch origin refs/pull/#{@request_id}/merge:"
-      cheetah_run "git checkout FETCH_HEAD"
-    end
-
-    # Wrapper for Cheetah calls, that ensure always full output on any errors.
-    def cheetah_run(command)
-      @last_output = Cheetah.run command.split
-      true
-    rescue Cheetah::ExecutionFailed => e
-      puts "Could not run #{command}:"
-      puts e.message
-      puts "Standard output: #{e.stdout}"
-      puts "Error output:    #{e.stderr}"
-      false
+      `git fetch origin refs/pull/#{@request_id}/merge:`
+      `git checkout FETCH_HEAD`
     end
 
     # Prepare project and CI (e.g. Jenkins) for the test run.
@@ -142,7 +131,8 @@ class Pullermann
       tests_to_run = "echo 'running tests ...'\nrake test:all;echo 'done'"
       tests_to_run = tests_to_run.split(%r{\n|;})
       tests_to_run.each do |task|
-        return false unless cheetah_run(task)
+        `#{task}`
+        return false unless $? == 0
       end
       true
     end
@@ -163,9 +153,7 @@ class Pullermann
       unless @git_config
         # Read @git_config from local git config.
         @git_config = {}
-        return [] unless cheetah_run 'git config --list'
-        config_list = @last_output
-        config_list.split("\n").each do |line|
+        `git config --list`.split("\n").each do |line|
           key, value = line.split('=')
           @git_config[key] = value
         end
