@@ -18,8 +18,8 @@ class Pullermann
       # Loop through all 'open' pull requests.
       pull_requests["pulls"].each do |request|
         @request_id = request["number"]
-        # TODO: Parse comments (looking for comments by 'username' or 'username_fail').
-        # TODO: Jump to next iteration if source and/or target haven't change since last run.
+        # Jump to next iteration if source and/or target haven't change since last run.
+        next unless testrun_neccessary?
         fetch
         prepare
         run_tests
@@ -34,6 +34,12 @@ class Pullermann
       # FIXME: Use Octokit to access GitHub.
       JSON.parse(open("https://github.com/api/v2/json/pulls/#{Pullermann.project}",
                              :http_basic_authentication=>[Pullermann.username, Pullermann.password]).read)
+    end
+
+    # Determine whether source and/or target haven't change since last run.
+    def testrun_neccessary?
+      # TODO: Parse comments (looking for comments by 'username' or 'username_fail').
+      # TODO: Respect configuration options when determining whether to run again or not.
     end
 
     # Fetch the merge-commit for the pull request.
