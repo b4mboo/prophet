@@ -7,19 +7,18 @@ class Pullermann
                   :username_fail,
                   :password_fail,
                   :rerun_on_source_change,
-                  :rerun_on_target_change,
-                  :project
+                  :rerun_on_target_change
 
 
     # Set default values for options.
     def initialize
-      # TODO: Get username and password from git in current directory.
       self.username = git_config['github.login']
       self.password = git_config['github.password']
       self.username_fail = self.username
       self.password_fail = self.password
       self.rerun_on_source_change = true
       self.rerun_on_target_change = true
+      @project = set_project
     end
 
     # Take configuration from Rails application's initializer.
@@ -28,7 +27,6 @@ class Pullermann
     end
 
     def run
-      set_project
       # Loop through all 'open' pull requests.
       pull_requests.each do |request|
         @request_id = request["number"]
@@ -45,8 +43,7 @@ class Pullermann
     private
 
     def set_project
-      #FIXME: use cheetah
-      remote = `git remote -v`
+      remote = git_config['remote.origin.url']
       @project = /:(.*)\.git/.match(remote)[1]
       puts "Using github project: #{@project}"
     end
