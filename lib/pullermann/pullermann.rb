@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require 'rubygems'
 require 'open-uri'
 require 'json'
@@ -30,7 +28,7 @@ end.parse!
 
 
 
-data = JSON.parse(open("https://github.com/api/v2/json/pulls/#{project}", 
+data = JSON.parse(open("https://github.com/api/v2/json/pulls/#{project}",
                        :http_basic_authentication=>[username, password]).read)
 data["pulls"].each do |pull|
   id = pull["number"]
@@ -53,7 +51,7 @@ data["pulls"].each do |pull|
     result = system("rake test:all")
 
     # comment on the pull request on GitHub.
-    if result 
+    if result
       `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{username}:#{password}" -X POST https://api.github.com/repos/#{project}/issues/104/comments;`
     else
       `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{username}:#{password}" -X POST https://api.github.com/repos/#{project}/issues/104/comments;`
