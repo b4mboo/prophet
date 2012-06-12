@@ -5,7 +5,7 @@ module Pullermann
 
   class Railtie < Rails::Railtie
     rake_tasks do
-      load 'lib/tasks/pullermann.rake'
+      load 'tasks/pullermann.rake'
     end
   end
 
