@@ -6,8 +6,21 @@ class Pullermann
                   :password,
                   :username_fail,
                   :password_fail,
+                  :rerun_on_source_change,
+                  :rerun_on_target_change,
                   :project
 
+    
+    # Set default values for options.
+    def initialize
+      # TODO: Get username and password from git in current directory.
+      self.username = 'foo'
+      self.password = 'bar'
+      self.username_fail = self.username
+      self.password_fail = self.password
+      self.rerun_on_source_change = true
+      self.rerun_on_target_change = true
+    end
 
     # Take configuration from Rails application's initializer.
     def setup
