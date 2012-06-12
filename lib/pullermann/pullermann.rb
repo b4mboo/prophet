@@ -115,9 +115,9 @@ class Pullermann
         main_task.each do |task|
           Cheetah.run(task)
         end
-        result = true
+        @result = true
       rescue
-        result = false
+        @result = false
       end
     end
 
