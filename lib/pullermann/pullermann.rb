@@ -27,11 +27,18 @@ class Pullermann
     end
 
     def run
+      @github = Octokit::Client.new(:login => self.username, :password => self.password)
+      begin
+        @github.repo @project
+      rescue
+        abort 'Unable to login to github.'
+      end
+
       # Loop through all 'open' pull requests.
       pull_requests.each do |request|
         @request_id = request["number"]
         # Jump to next iteration if source and/or target haven't change since last run.
-        next unless test_run_neccessary?
+        next unless test_run_neccessary?(@request_id)
         fetch
         prepare
         # Determine if all tests pass.
@@ -50,22 +57,52 @@ class Pullermann
     end
 
     def pull_requests
-      github = Octokit::Client.new(:login => self.username, :password => self.password)
-      begin
-        github.repo @project
-      rescue
-        abort 'Unable to login to github.'
-      end
-      pulls = github.pulls @project, 'open'
-      puts "Found #{pulls.size} pull requests.."
+      pulls = @github.pulls @project, 'open'
+      pulls.select! { |p| p.mergeable }
+      puts "Found #{pulls.size} auto-mergeable pull requests.."
       pulls
     end
 
-    # Determine whether source and/or target haven't change since last run.
-    def test_run_neccessary?
-      # TODO: Parse comments (looking for comments by 'username' or 'username_fail').
-      # TODO: Respect configuration options when determining whether to run again or not.
+    def test_run_neccessary? pull_id
+      pull = @github.pull_request @project, pull_id
+
+      # get git sha ids of master and branch state during last testrun
+
+      comments = pull.discussion.select { |c| c.type == "IssueComment" &&
+          [username, username_fail].include?(c.user.login)}.reverse
+
+      if comments.empty?
+        puts "New pull request detected, testrun needed"
+        return true
+      else
+        # TODO: find a better way to get the master sha
+        master_ref = `git log origin/master -n 1`
+        master_ref = /commit (.+)/.match(master_ref)[1]
+        pull_ref = pull.head.sha
+
+        refs = nil
+        comments.each do |comment|
+          refs = /master ref#(.+); pull ref#(.+)/.match(comment.body)
+          break if refs && refs[1] && refs[2]
+        end
+
+        if refs && refs[1] && refs[2]
+          puts "Last testrun master ref: #{refs[1]}, pull ref: #{refs[2]}"
+          puts "Current master ref: #{master_ref}, pull ref: #{pull_ref}"
+          if self.rerun_on_source_change && (refs[2] != pull_ref)
+            puts "Re-running test due to new commit in pull request"
+            return true
+          elsif self.rerun_on_target_change && (refs[1] != master_ref)
+            puts "Re-running test due to new commit in master"
+            return true
+          end
+        else
+          puts "No git refs found in pullermann comments..."
+        end
+      end
+      return false
     end
+
 
     # Fetch the merge-commit for the pull request.
     def fetch
@@ -80,7 +117,7 @@ class Pullermann
       true
     rescue Cheetah::ExecutionFailed => e
       puts "Could not run #{command}:"
-      puts  e.message
+      puts e.message
       puts "Standard output: #{e.stdout}"
       puts "Error output:    #{e.stderr}"
       false
