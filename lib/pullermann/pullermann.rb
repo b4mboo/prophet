@@ -45,7 +45,7 @@ class Pullermann
       rescue Cheetah::ExecutionFailed => e
         puts "Could not run git #{e.message}"
         puts "Standard output: #{e.stdout}"
-        puts "Error ouptut:    #{e.stderr}"
+        puts "Error output:    #{e.stderr}"
       end
     end
 
