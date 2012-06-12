@@ -11,8 +11,8 @@ class Pullermann
 
   def run
     # FIXME: Use Octokit to access GHitHub.
-    data = JSON.parse(open("https://github.com/api/v2/json/pulls/#{@project}",
-                           :http_basic_authentication=>[@username, @password]).read)
+    data = JSON.parse(open("https://github.com/api/v2/json/pulls/#{Pullermann.project}",
+                           :http_basic_authentication=>[Pullermann.username, Pullermann.password]).read)
 
     # Loop through all 'open' pull requests.
     data["pulls"].each do |pull|
@@ -48,9 +48,9 @@ class Pullermann
 
       # Output the result to a comment on the pull request on GitHub.
       if result
-        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{@username}:#{@password}" -X POST https://api.github.com/repos/#{@project}/issues/104/comments;`
+        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{Pullermann.username}:#{Pullermann.password}" -X POST https://api.github.com/repos/#{Pullermann.project}/issues/104/comments;`
       else
-        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{@username_fail}:#{@password_fail}" -X POST https://api.github.com/repos/#{@project}/issues/104/comments;`
+        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{Pullermann.username_fail}:#{Pullermann.password_fail}" -X POST https://api.github.com/repos/#{Pullermann.project}/issues/104/comments;`
       end
     end
   end
