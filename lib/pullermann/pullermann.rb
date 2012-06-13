@@ -10,19 +10,6 @@ class Pullermann
                   :rerun_on_target_change
 
 
-    # Set default values for options.
-    def configure
-      self.username = git_config['github.login']
-      self.password = git_config['github.password']
-      self.username_fail = self.username
-      self.password_fail = self.password
-      self.rerun_on_source_change = true
-      self.rerun_on_target_change = true
-      set_project
-      @prepare_block = lambda { }
-      @test_block = lambda { `rake test:all` }
-    end
-
     # Take configuration from Rails application's initializer.
     def setup
       configure
@@ -60,6 +47,19 @@ class Pullermann
 
 
     private
+    # Set default values for options.
+    def configure
+      self.username = git_config['github.login']
+      self.password = git_config['github.password']
+      self.username_fail = self.username
+      self.password_fail = self.password
+      self.rerun_on_source_change = true
+      self.rerun_on_target_change = true
+      set_project
+      @prepare_block = lambda { }
+      @test_block = lambda { `rake test:all` }
+    end
+
 
     def connect_to_github
       # Enable runs without setup step (using only defaults).
