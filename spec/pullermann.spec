@@ -40,7 +40,9 @@ describe Pullermann do
     pull_request.should_receive(:mergeable).and_return(true)
     @github.stub(:pulls).and_return([{'number' => request_id}])
     @github.should_receive(:pull_request).with(@project, request_id).and_return(pull_request)
+    # See if we're actually querying for issue comments.
     @github.should_receive(:issue_comments).with(@project, request_id).and_return([])
+    # Skip the rest, as we will test this in other tests.
     Pullermann.stub(:switch_branch_to_merged_state)
     Pullermann.stub(:switch_branch_back)
     Pullermann.stub(:comment_on_github)
