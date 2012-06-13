@@ -1,7 +1,7 @@
 $:.unshift File.join(File.dirname(__FILE__), '..', 'lib')
 require 'pullermann'
 
-describe Pullermann, 'in general' do
+describe Pullermann do
 
   before :each do
     # Variables to use inside the tests.
