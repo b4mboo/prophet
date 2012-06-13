@@ -6,6 +6,8 @@ describe Pullermann do
   before :each do
     # Variables to use inside the tests.
     @project = 'user/project'
+    Pullermann.prepare_block= lambda{}
+    Pullermann.test_block = lambda{}
     # Stub external dependency @gitconfig (local file).
     Pullermann.stub(:git_config).and_return(
       'github.login' => 'default_login',
