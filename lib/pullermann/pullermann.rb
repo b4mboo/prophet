@@ -19,12 +19,24 @@ class Pullermann
       self.rerun_on_source_change = true
       self.rerun_on_target_change = true
       set_project
+      @prepare_block = lambda { }
+      @test_block = lambda { `rake test:all` }
     end
 
     # Take configuration from Rails application's initializer.
     def setup
       configure
       yield self
+    end
+
+    # Override defaults with a code block from config file.
+    def test_preparation(&block)
+      @prepare_block = block
+    end
+
+    # Override defaults with a code block from config file.
+    def test_execution(&block)
+      @test_block = block
     end
 
     def run
@@ -43,7 +55,11 @@ class Pullermann
         # Jump to next iteration if source and/or target haven't change since last run.
         next unless test_run_neccessary?(@request_id)
         fetch
-        prepare
+        # Prepare project and CI (e.g. Jenkins) for the test run.
+        @prepare_block.call
+        # Run specified tests for the project.
+        @test_block.call
+
         # Determine if all tests pass.
         @result = run_tests
         comment_on_github
@@ -60,6 +76,7 @@ class Pullermann
     end
 
     def pull_requests
+      debugger
       pulls = @github.pulls @project, 'open'
       pulls.select! { |p| p.mergeable }
       puts "Found #{pulls.size} auto-mergeable pull requests.."
@@ -114,30 +131,6 @@ class Pullermann
       `git checkout FETCH_HEAD`
     end
 
-    # Prepare project and CI (e.g. Jenkins) for the test run.
-    def prepare
-      # FIXME: Move this to configurable 'setup' block.
-      # Setup project with latest code.
-      `bundle install`
-      `rake db:create`
-      `rake db:migrate`
-
-      # Setup jenkins.
-      `rake -f /usr/lib/ruby/gems/1.9.1/gems/ci_reporter-1.7.0/stub.rake`
-      `rake ci:setup:testunit`
-    end
-
-    # Run specified tests for the project.
-    def run_tests
-      # FIXME: Move to a configurable 'run' block.
-      tests_to_run = "echo 'running tests ...'\nrake test:all;echo 'done'"
-      tests_to_run = tests_to_run.split(%r{\n|;})
-      tests_to_run.each do |task|
-        `#{task}`
-        return false unless $? == 0
-      end
-      true
-    end
 
     # Output the result to a comment on the pull request on GitHub.
     def comment_on_github
