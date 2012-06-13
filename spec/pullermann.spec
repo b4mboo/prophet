@@ -55,6 +55,10 @@ describe Pullermann do
 
   it 'uses two different users for commenting (success/failure)'
 
+  it 'updates existing comments to reduce noise'
+
+  it 'deletes obsolete comments whenever the result changes'
+
   it 'allows for configuration by the user'
 
   it 'uses sane fall back values'
