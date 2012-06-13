@@ -34,7 +34,7 @@ class Pullermann
       pull_requests.each do |request|
         @request_id = request["number"]
         # Jump to next iteration if source and/or target haven't change since last run.
-        next unless test_run_neccessary?(@request_id)
+        next unless test_run_neccessary?
         fetch
         # Prepare project and CI (e.g. Jenkins) for the test run.
         @prepare_block.call
@@ -42,7 +42,7 @@ class Pullermann
         @test_block.call
 
         # Determine if all tests pass.
-        @result = run_tests
+        @result = $? == 0
         comment_on_github
       end
     end
@@ -58,7 +58,7 @@ class Pullermann
       self.rerun_on_source_change = true
       self.rerun_on_target_change = true
       set_project
-      @prepare_block = lambda { }
+      @prepare_block = lambda {}
       @test_block = lambda { `rake test:all` }
     end
 
@@ -82,13 +82,13 @@ class Pullermann
 
     def pull_requests
       pulls = @github.pulls @project, 'open'
-      puts "Found #{pulls.size} pull requests.."
+      puts "Found #{pulls.size} pull requests in #{@project}.."
       pulls
     end
 
-    def test_run_neccessary? pull_id
-      pull = @github.pull_request @project, pull_id
-      puts "Checking pull request ##{pull_id}: #{pull.title}"
+    def test_run_neccessary?
+      pull = @github.pull_request @project, @request_id
+      puts "Checking pull request ##{@request_id}: #{pull.title}"
 
       unless pull.mergeable
         puts "Pull request not auto-mergeable, skipping... "
@@ -97,17 +97,15 @@ class Pullermann
 
       # get git sha ids of master and branch state during last testrun
 
-      comments = @github.issue_comments(@project, pull_id)
-      comments.select! {|c| [username, username_fail].include?(c.user.login) }.reverse
+      comments = @github.issue_comments(@project, @request_id)
+      comments.select! { |c| [username, username_fail].include?(c.user.login) }.reverse
 
       if comments.empty?
         puts "New pull request detected, testrun needed"
         return true
       else
-        # TODO: find a better way to get the master sha
-        master_ref = `git log origin/master -n 1`
-        master_ref = /commit (.+)/.match(master_ref)[1]
-        pull_ref = pull.head.sha
+        @master_head_sha = @github.commits(@project).first.sha
+        @pull_head_sha = pull.head.sha
 
         refs = nil
         comments.each do |comment|
@@ -117,11 +115,11 @@ class Pullermann
 
         if refs && refs[1] && refs[2]
           puts "Last testrun master ref: #{refs[1]}, pull ref: #{refs[2]}"
-          puts "Current master ref: #{master_ref}, pull ref: #{pull_ref}"
-          if self.rerun_on_source_change && (refs[2] != pull_ref)
+          puts "Current master ref: #{@master_head_sha}, pull ref: #{@pull_head_sha}"
+          if self.rerun_on_source_change && (refs[2] != @pull_head_sha)
             puts "Re-running test due to new commit in pull request"
             return true
-          elsif self.rerun_on_target_change && (refs[1] != master_ref)
+          elsif self.rerun_on_target_change && (refs[1] != @master_head_sha)
             puts "Re-running test due to new commit in master"
             return true
           end
