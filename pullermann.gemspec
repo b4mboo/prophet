@@ -15,6 +15,6 @@ Gem::Specification.new do |s|
   s.summary  = 'An easy way to test pull requests.'
   s.description = 'Pullermann runs your project\'s test suite on open pull requests on GitHub. Afterwards it posts the result as a comment to the respective request. That way you know whether your tests are still going to pass if you accept the request and merge the code.'
 
-  s.add_runtime_dependency 'rspec'
   s.add_runtime_dependency 'octokit'
+  s.add_runtime_dependency 'rspec'
 end

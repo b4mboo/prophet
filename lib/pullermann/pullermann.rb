@@ -9,7 +9,8 @@ class Pullermann
                   :rerun_on_source_change,
                   :rerun_on_target_change,
                   :prepare_block,
-                  :test_block
+                  :test_block,
+                  :log_level
 
 
     # Take configuration from Rails application's initializer.
@@ -19,12 +20,12 @@ class Pullermann
 
     # Override defaults with a code block from config file.
     def test_preparation(&block)
-      @prepare_block = block
+      self.prepare_block = block
     end
 
     # Override defaults with a code block from config file.
     def test_execution(&block)
-      @test_block = block
+      self.test_block = block
     end
 
     # The main Pullermann task. Call this to start testing.
@@ -39,11 +40,11 @@ class Pullermann
         # GitHub always creates a merge commit for its 'Merge Button'.
         switch_branch_to_merged_state
         # Prepare project and CI (e.g. Jenkins) for the test run.
-        @prepare_block.call
+        self.prepare_block.call
         # Run specified tests for the project.
         # NOTE: Either ensure the last call in that block runs your tests
         # or manually set @result to a boolean inside this block.
-        @test_block.call
+        self.test_block.call
         # Unless already set, the success/failure is determined by the last
         # command's return code.
         @result ||= $? == 0
@@ -59,6 +60,8 @@ class Pullermann
 
     # Setup Pullermann.
     def configure
+      @log = Logger.new(STDOUT)
+      @log.level = self.log_level || Logger::INFO
       # Set default fall back values for options that aren't set.
       self.username ||= git_config['github.login']
       self.password ||= git_config['github.password']
@@ -77,7 +80,7 @@ class Pullermann
       @github = Octokit::Client.new(:login => self.username, :password => self.password)
       begin
         @github.login
-        puts "Successfully logged into github (api v#{@github.api_version}) with user #{self.username}"
+        @log.info "Successfully logged into github (api v#{@github.api_version}) with user #{self.username}"
         @github.repo @project
       rescue Octokit::Unauthorized => e
         abort "Unable to login to github project with user #{self.username}: #{e.message}"
@@ -87,21 +90,21 @@ class Pullermann
     def set_project
       remote = git_config['remote.origin.url']
       @project = /:(.*)\.git/.match(remote)[1]
-      puts "Using github project: #{@project}"
+      @log.info "Using github project: #{@project}"
     end
 
     def pull_requests
       pulls = @github.pulls @project, 'open'
-      puts "Found #{pulls.size} pull requests in #{@project}.."
+      @log.info "Found #{pulls.size} pull requests in #{@project}.."
       pulls
     end
 
     def test_run_neccessary?
       pull = @github.pull_request @project, @request_id
-      puts "Checking pull request ##{@request_id}: #{pull.title}"
+      @log.info "Checking pull request ##{@request_id}: #{pull.title}"
 
       unless pull.mergeable
-        puts "Pull request not auto-mergeable, skipping... "
+        @log.info "Pull request not auto-mergeable, skipping... "
         return false
       end
 
@@ -111,7 +114,7 @@ class Pullermann
       comments = comments.select{ |c| [username, username_fail].include?(c.user.login) }.reverse
 
       if comments.empty?
-        puts "New pull request detected, testrun needed"
+        @log.info "New pull request detected, testrun needed"
         return true
       else
         @master_head_sha ||= @github.commits(@project).first.sha
@@ -124,17 +127,17 @@ class Pullermann
         end
 
         if shas && shas[1] && shas[2]
-          puts "Last testrun master sha: #{shas[1]}, pull sha: #{shas[2]}"
-          puts "Current master sha: #{@master_head_sha}, pull sha: #{@pull_head_sha}"
+          @log.info "Last testrun master sha: #{shas[1]}, pull sha: #{shas[2]}"
+          @log.info "Current master sha: #{@master_head_sha}, pull sha: #{@pull_head_sha}"
           if self.rerun_on_source_change && (shas[2] != @pull_head_sha)
-            puts "Re-running test due to new commit in pull request"
+            @log.info "Re-running test due to new commit in pull request"
             return true
           elsif self.rerun_on_target_change && (shas[1] != @master_head_sha)
-            puts "Re-running test due to new commit in master"
+            @log.info "Re-running test due to new commit in master"
             return true
           end
         else
-          puts "No git refs found in pullermann comments. Running tests..."
+          @log.info "No git refs found in pullermann comments. Running tests..."
           return true
         end
       end
@@ -152,7 +155,7 @@ class Pullermann
 
     def switch_branch_back
       # FIXME: For branches other than master, remember the original branch.
-      puts "Switching back to master branch"
+      @log.info "Switching back to master branch"
       `git co master &> /dev/null`
     end
 

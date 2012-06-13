@@ -4,6 +4,7 @@ require 'pullermann'
 describe Pullermann do
 
   before :each do
+    Pullermann.log_level = Logger::WARN
     # Variables to use inside the tests.
     @project = 'user/project'
     Pullermann.prepare_block= lambda{}
