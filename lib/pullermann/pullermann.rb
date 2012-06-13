@@ -63,7 +63,6 @@ class Pullermann
       @test_block = lambda { `rake test:all` }
     end
 
-
     def connect_to_github
       @github = Octokit::Client.new(:login => self.username, :password => self.password)
       begin
