@@ -35,12 +35,12 @@ class Pullermann
         @request_id = request["number"]
         # Jump to next iteration if source and/or target haven't change since last run.
         next unless test_run_neccessary?(@request_id)
-        fetch
+        # Get to the already merged state.
+        fetch_merged_state
         # Prepare project and CI (e.g. Jenkins) for the test run.
         @prepare_block.call
         # Run specified tests for the project.
         @test_block.call
-
         # Determine if all tests pass.
         @result ||= $? == 0
         comment_on_github
@@ -134,7 +134,7 @@ class Pullermann
 
 
     # Fetch the merge-commit for the pull request.
-    def fetch
+    def fetch_merged_state
       # NOTE: This commit automatically created by 'GitHub Merge Button'.
       `git fetch origin refs/pull/#{@request_id}/merge:`
       `git checkout FETCH_HEAD`
