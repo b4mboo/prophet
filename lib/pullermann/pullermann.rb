@@ -13,17 +13,15 @@ class Pullermann
                   :log_level
 
 
-    # Take configuration from Rails application's initializer.
+    # Allow configuration blocks being passed to Pullermann.
     def setup
       yield self
     end
 
-    # Override defaults with a code block from config file.
     def test_preparation(&block)
       self.prepare_block = block
     end
 
-    # Override defaults with a code block from config file.
     def test_execution(&block)
       self.test_block = block
     end
@@ -58,7 +56,6 @@ class Pullermann
 
     private
 
-    # Setup Pullermann.
     def configure
       @log = Logger.new(STDOUT)
       @log.level = self.log_level || Logger::INFO
@@ -145,9 +142,9 @@ class Pullermann
     end
 
 
-    # Fetch the merge-commit for the pull request.
     def switch_branch_to_merged_state
-      # NOTE: This commit automatically created by 'GitHub Merge Button'.
+      # Fetch the merge-commit for the pull request.
+      # NOTE: This commit is automatically created by 'GitHub Merge Button'.
       `git fetch origin refs/pull/#{@request_id}/merge: &> /dev/null`
       `git checkout FETCH_HEAD &> /dev/null`
       abort("Error: Unable to switch to merge branch") unless ($? == 0)
@@ -172,7 +169,6 @@ class Pullermann
                            "Unfortunately your tests are failing after merging this pull request. #{sha_string}")
       end
     end
-
 
     # Collect git config information in a Hash for easy access.
     # Checks '~/.gitconfig' for credentials.
