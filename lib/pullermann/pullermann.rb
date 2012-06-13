@@ -157,9 +157,13 @@ class Pullermann
     def comment_on_github
       sha_string = "\n( master sha# #{@master_head_sha} ; pull sha# #{@pull_head_sha} )"
       if @result
-        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request. #{sha_string}" }' -u "#{self.username}:#{self.password}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
+        client = Octokit::Client.new(:login => self.username, :password => self.password)
+        client.add_comment(@project, @request_id,
+                           "Well done! All tests are still passing after merging this pull request. #{sha_string}")
       else
-        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request. #{sha_string}" }' -u "#{self.username_fail}:#{self.password_fail}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
+        client = Octokit::Client.new(:login => self.username_fail, :password => self.password_fail)
+        client.add_comment(@project, @request_id,
+                           "Unfortunately your tests are failing after merging this pull request. #{sha_string}")
       end
     end
 
