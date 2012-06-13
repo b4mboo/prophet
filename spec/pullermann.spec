@@ -3,6 +3,11 @@ require 'pullermann'
 
 describe Pullermann, 'in general' do
 
+  before(:each) do
+    @github = mock('GitHub')
+    Octokit::Client.stub!(:new).and_return(@github)
+  end
+
   it 'loops through all open pull requests'
 
   it 'checks existing comments to determine the last test run'
