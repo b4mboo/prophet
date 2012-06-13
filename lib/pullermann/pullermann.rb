@@ -31,21 +31,23 @@ class Pullermann
       configure
       # Loop through all 'open' pull requests.
       pull_requests.each do |request|
-        @request_id = request["number"]
+        @request_id = request['number']
         # Jump to next iteration if source and/or target haven't change since last run.
         next unless test_run_neccessary?
-        # Get to the already merged state.
-        fetch_merged_state
+        # GitHub always creates a merge commit for its 'Merge Button'.
+        switch_branch_to_merged_state
         # Prepare project and CI (e.g. Jenkins) for the test run.
         @prepare_block.call
         # Run specified tests for the project.
+        # NOTE: Either ensure the last call in that block runs your tests
+        # or manually set @result to a boolean inside this block.
         @test_block.call
-        # Determine if all tests pass.
+        # Unless already set, the success/failure is determined by the last
+        # command's return code.
         @result ||= $? == 0
-        # Switch back to master branch.
-        # FIXME: For branches other than master, remember the original branch.
-        puts "Switching back to master branch"
-        `git co master &> /dev/null`
+        # We need to switch back to the original branch in case we need to test
+        # more pull requests.
+        switch_branch_back
         comment_on_github
       end
     end
@@ -138,13 +140,18 @@ class Pullermann
 
 
     # Fetch the merge-commit for the pull request.
-    def fetch_merged_state
+    def switch_branch_to_merged_state
       # NOTE: This commit automatically created by 'GitHub Merge Button'.
       `git fetch origin refs/pull/#{@request_id}/merge: &> /dev/null`
       `git checkout FETCH_HEAD &> /dev/null`
       abort("Error: Unable to switch to merge branch") unless ($? == 0)
     end
 
+    def switch_branch_back
+      # FIXME: For branches other than master, remember the original branch.
+      puts "Switching back to master branch"
+      `git co master &> /dev/null`
+    end
 
     # Output the result to a comment on the pull request on GitHub.
     def comment_on_github
