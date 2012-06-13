@@ -1,7 +1,7 @@
 $LOAD_PATH.unshift 'lib'
 
 Gem::Specification.new do |s|
-  s.name     = 'Pullermann'
+  s.name     = 'pullermann'
   s.date     = Time.now.strftime('%F')
   s.version  = open('VERSION').read().strip
   s.homepage = 'http://github.com/b4mboo/pullermann'
