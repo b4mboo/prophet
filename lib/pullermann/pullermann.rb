@@ -19,7 +19,7 @@ class Pullermann
       self.rerun_on_source_change = true
       self.rerun_on_target_change = true
       set_project
-      @prepare_block = lambda { }
+      @prepare_block = lambda {}
       @test_block = lambda { `rake test:all` }
     end
 
@@ -44,9 +44,11 @@ class Pullermann
       configure unless @project
       @github = Octokit::Client.new(:login => self.username, :password => self.password)
       begin
+        @github.login
+        puts "Successfully logged into github (api v#{@github.api_version}) with user #{self.username}"
         @github.repo @project
       rescue
-        abort 'Unable to login to github.'
+        abort 'Unable to login to github project with user #{self.username}.'
       end
 
       # Loop through all 'open' pull requests.
@@ -77,18 +79,23 @@ class Pullermann
 
     def pull_requests
       pulls = @github.pulls @project, 'open'
-      pulls.select! { |p| p.mergeable }
-      puts "Found #{pulls.size} auto-mergeable pull requests.."
+      puts "Found #{pulls.size} pull requests.."
       pulls
     end
 
     def test_run_neccessary? pull_id
       pull = @github.pull_request @project, pull_id
+      puts "Checking pull request ##{pull_id}: #{pull.title}"
+
+      unless pull.mergeable
+        puts "Pull request not auto-mergeable, skipping... "
+        return false
+      end
 
       # get git sha ids of master and branch state during last testrun
 
-      comments = pull.discussion.select { |c| c.type == "IssueComment" &&
-          [username, username_fail].include?(c.user.login)}.reverse
+      comments = @github.issue_comments(@project, pull_id)
+      comments.select! {|c| [username, username_fail].include?(c.user.login) }.reverse
 
       if comments.empty?
         puts "New pull request detected, testrun needed"
