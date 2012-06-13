@@ -10,19 +10,6 @@ class Pullermann
                   :rerun_on_target_change
 
 
-    # Set default values for options.
-    def configure
-      self.username = git_config['github.login']
-      self.password = git_config['github.password']
-      self.username_fail = self.username
-      self.password_fail = self.password
-      self.rerun_on_source_change = true
-      self.rerun_on_target_change = true
-      set_project
-      @prepare_block = lambda {}
-      @test_block = lambda { `rake test:all` }
-    end
-
     # Take configuration from Rails application's initializer.
     def setup
       configure
@@ -42,15 +29,7 @@ class Pullermann
     def run
       # Enable runs without setup step (using only defaults).
       configure unless @project
-      @github = Octokit::Client.new(:login => self.username, :password => self.password)
-      begin
-        @github.login
-        puts "Successfully logged into github (api v#{@github.api_version}) with user #{self.username}"
-        @github.repo @project
-      rescue
-        abort 'Unable to login to github project with user #{self.username}.'
-      end
-
+      connect_to_github
       # Loop through all 'open' pull requests.
       pull_requests.each do |request|
         @request_id = request["number"]
@@ -70,6 +49,30 @@ class Pullermann
 
 
     private
+    # Set default values for options.
+    def configure
+      self.username = git_config['github.login']
+      self.password = git_config['github.password']
+      self.username_fail = self.username
+      self.password_fail = self.password
+      self.rerun_on_source_change = true
+      self.rerun_on_target_change = true
+      set_project
+      @prepare_block = lambda { }
+      @test_block = lambda { `rake test:all` }
+    end
+
+
+    def connect_to_github
+      @github = Octokit::Client.new(:login => self.username, :password => self.password)
+      begin
+        @github.login
+        puts "Successfully logged into github (api v#{@github.api_version}) with user #{self.username}"
+        @github.repo @project
+      rescue
+        abort 'Unable to login to github project with user #{self.username}.'
+      end
+    end
 
     def set_project
       remote = git_config['remote.origin.url']
