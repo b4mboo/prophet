@@ -28,6 +28,16 @@ describe Pullermann do
     end
   end
 
+  it 'configures variables by default' do
+    Pullermann.run
+    Pullermann.username.should == "default_login"
+    Pullermann.password.should == "default_password"
+    Pullermann.username_fail.should == "default_login"
+    Pullermann.password_fail.should == "default_password"
+    Pullermann.rerun_on_source_change.should == true
+    Pullermann.rerun_on_target_change.should == true
+  end
+
   it 'loops through all open pull requests' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.run
@@ -78,6 +88,7 @@ describe Pullermann do
     Pullermann.password_fail.should == "password_fail"
     Pullermann.rerun_on_source_change.should == false
     Pullermann.rerun_on_target_change.should == false
+    Pullermann.run
   end
 
 
