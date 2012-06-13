@@ -92,3 +92,12 @@ and in the end just call Pullermann manually.
 
 Running this script will do the same as as running the rake task on a Rails
 project.
+
+
+Thanks
+------
+
+A big "Thank you" goes out to Konstantin Haase (rkh / @konstantinhaase) who
+told us about that idea at Railsberry 2012 in Krakow.
+
+    http://www.youtube.com/watch?v=YFzloW8F-nE
