@@ -15,13 +15,12 @@ describe Pullermann, 'in general' do
     # Stub external dependency @github (remote server).
     @github = mock 'GitHub'
     Octokit::Client.stub(:new).and_return(@github)
-    @github.should_receive(:login)
-    @github.should_receive(:api_version)
-    @github.should_receive(:repo).with(@project)
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    @github.stub(:login)
+    @github.stub(:api_version).and_return('3')
+    @github.stub(:repo).with(@project)
   end
 
-  after(:each) do
+  after :each do
     # Empty all variables on Pullermann after each test.
     # Since we're not working with instances, this hack is necessary.
     Pullermann.instance_variables.each do |variable|
@@ -30,10 +29,23 @@ describe Pullermann, 'in general' do
   end
 
   it 'loops through all open pull requests' do
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.run
   end
 
-  it 'checks existing comments to determine the last test run'
+  it 'checks existing comments to determine the last test run' do
+    pull_request = mock 'pull request'
+    request_id = 42
+    pull_request.should_receive(:title).and_return('mock request')
+    pull_request.should_receive(:mergeable).and_return(true)
+    @github.stub(:pulls).and_return([{'number' => request_id}])
+    @github.should_receive(:pull_request).with(@project, request_id).and_return(pull_request)
+    @github.should_receive(:issue_comments).with(@project, request_id).and_return([])
+    Pullermann.stub(:switch_branch_to_merged_state)
+    Pullermann.stub(:switch_branch_back)
+    Pullermann.stub(:comment_on_github)
+    Pullermann.run
+  end
 
   it 'runs the tests when either source or target branch have changed'
 
