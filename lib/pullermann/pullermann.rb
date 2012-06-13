@@ -42,6 +42,9 @@ class Pullermann
         @test_block.call
         # Determine if all tests pass.
         @result ||= $? == 0
+        # Switch back to master branch.
+        # FIXME: For branches other than master, remember the original branch.
+        `git co master`
         comment_on_github
       end
     end
