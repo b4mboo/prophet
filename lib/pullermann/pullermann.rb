@@ -42,7 +42,7 @@ class Pullermann
         @test_block.call
 
         # Determine if all tests pass.
-        @result = $? == 0
+        @result ||= $? == 0
         comment_on_github
       end
     end
