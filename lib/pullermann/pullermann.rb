@@ -34,21 +34,21 @@ class Pullermann
       pull_requests.each do |request|
         @request_id = request["number"]
         # Jump to next iteration if source and/or target haven't change since last run.
-        next unless test_run_neccessary?
-        fetch
+        # Get to the already merged state.
+        fetch_merged_state
         # Prepare project and CI (e.g. Jenkins) for the test run.
         @prepare_block.call
         # Run specified tests for the project.
         @test_block.call
-
         # Determine if all tests pass.
-        @result = $? == 0
+        @result ||= $? == 0
         comment_on_github
       end
     end
 
 
     private
+
     # Set default values for options.
     def configure
       self.username = git_config['github.login']
@@ -61,7 +61,6 @@ class Pullermann
       @prepare_block = lambda {}
       @test_block = lambda { `rake test:all` }
     end
-
 
     def connect_to_github
       @github = Octokit::Client.new(:login => self.username, :password => self.password)
@@ -132,7 +131,7 @@ class Pullermann
 
 
     # Fetch the merge-commit for the pull request.
-    def fetch
+    def fetch_merged_state
       # NOTE: This commit automatically created by 'GitHub Merge Button'.
       `git fetch origin refs/pull/#{@request_id}/merge:`
       `git checkout FETCH_HEAD`
