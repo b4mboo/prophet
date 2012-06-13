@@ -1,14 +1,32 @@
 $:.unshift File.join(File.dirname(__FILE__), '..', 'lib')
 require 'pullermann'
+require 'debugger'
 
 describe Pullermann, 'in general' do
 
-  before(:each) do
-    @github = mock('GitHub')
+  before :each do
+    # Stub external dependencies @gitconfig (local file).
+    Pullermann.stub(:git_config).and_return(
+      'github.login' => 'default_login',
+      'github.password' => 'default_password',
+      'remote.origin.url' => 'git@github.com:user/project.git'
+    )
+    # Stub external dependencies @github (remote server).
+    @github = mock 'GitHub'
     Octokit::Client.stub!(:new).and_return(@github)
   end
 
-  it 'loops through all open pull requests'
+  it 'loops through all open pull requests' do
+    project = 'user/project'
+    @github.should_receive(:login)
+    @github.should_receive(:api_version)
+    @github.should_receive(:repo).with(project)
+    pull_requests = mock 'pull requests'
+    @github.should_receive(:pulls).with(project, 'open').and_return(pull_requests)
+    pull_requests.should_receive(:size)
+    pull_requests.should_receive(:each)
+    Pullermann.run
+  end
 
   it 'checks existing comments to determine the last test run'
 
