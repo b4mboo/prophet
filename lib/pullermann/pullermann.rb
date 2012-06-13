@@ -67,8 +67,8 @@ class Pullermann
       self.password ||= git_config['github.password']
       self.username_fail ||= self.username
       self.password_fail ||= self.password
-      self.rerun_on_source_change ||= true
-      self.rerun_on_target_change ||= true
+      self.rerun_on_source_change = true unless self.rerun_on_source_change == false
+      self.rerun_on_target_change = true unless self.rerun_on_target_change == false
       # Find environment (project, tasks, connection, ...).
       set_project
       @prepare_block ||= lambda {}

@@ -31,7 +31,7 @@ describe Pullermann do
     end
   end
 
-  it 'configures variables by default' do
+  it 'configures populates variables with default values' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.run
     Pullermann.username.should == "default_login"
@@ -42,28 +42,45 @@ describe Pullermann do
     Pullermann.rerun_on_target_change.should == true
   end
 
-  it 'configures prepare block' do
+  it 'respects variable values if set manually' do
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    Pullermann.setup do |configure|
+      configure.username = "username"
+      configure.password = "password"
+      configure.username_fail = "username_fail"
+      configure.password_fail = "password_fail"
+      configure.rerun_on_source_change = false
+      configure.rerun_on_target_change = false
+    end
+    Pullermann.run
+    Pullermann.username.should == "username"
+    Pullermann.password.should == "password"
+    Pullermann.username_fail.should == "username_fail"
+    Pullermann.password_fail.should == "password_fail"
+    Pullermann.rerun_on_source_change.should == false
+    Pullermann.rerun_on_target_change.should == false
+  end
+
+  it 'allows custom commands for test preparation' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.setup do |config|
-      config.test_preparation do 
+      config.test_preparation do
         raise "test preparation"
       end
     end
     Pullermann.run
-    lambda{Pullermann.prepare_block.call}.should raise_error String "test preparation"
-    
+    lambda { Pullermann.prepare_block.call }.should raise_error String "test preparation"
   end
 
-  it 'configures execution block' do
+  it 'allows custom commands for test execution' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.setup do |config|
-      config.test_preparation do 
+      config.test_preparation do
         raise "test execution"
       end
     end
     Pullermann.run
-    lambda{Pullermann.prepare_block.call}.should raise_error String "test execution"
-    
+    lambda { Pullermann.prepare_block.call }.should raise_error String "test execution"
   end
 
   it 'loops through all open pull requests' do
@@ -96,25 +113,5 @@ describe Pullermann do
   it 'updates existing comments to reduce noise'
 
   it 'deletes obsolete comments whenever the result changes'
-
-  it 'configures variables correctly' do
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
-    Pullermann.setup do |configure|
-      configure.username = "username"
-      configure.password = "password"
-      configure.username_fail = "username_fail"
-      configure.password_fail = "password_fail"
-      configure.rerun_on_source_change = false
-      configure.rerun_on_target_change = false
-    end
-    Pullermann.username.should == "username"
-    Pullermann.password.should == "password"
-    Pullermann.username_fail.should == "username_fail"
-    Pullermann.password_fail.should == "password_fail"
-    Pullermann.rerun_on_source_change.should == false
-    Pullermann.rerun_on_target_change.should == false
-    Pullermann.run
-  end
-
 
 end
