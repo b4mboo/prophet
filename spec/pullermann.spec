@@ -13,7 +13,7 @@ describe Pullermann, 'in general' do
     )
     # Stub external dependencies @github (remote server).
     @github = mock 'GitHub'
-    Octokit::Client.stub!(:new).and_return(@github)
+    Octokit::Client.stub(:new).and_return(@github)
   end
 
   it 'loops through all open pull requests' do
