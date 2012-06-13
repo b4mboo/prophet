@@ -76,7 +76,6 @@ class Pullermann
     end
 
     def pull_requests
-      debugger
       pulls = @github.pulls @project, 'open'
       pulls.select! { |p| p.mergeable }
       puts "Found #{pulls.size} auto-mergeable pull requests.."
