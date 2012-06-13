@@ -29,6 +29,7 @@ describe Pullermann do
   end
 
   it 'configures variables by default' do
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.run
     Pullermann.username.should == "default_login"
     Pullermann.password.should == "default_password"
@@ -38,13 +39,27 @@ describe Pullermann do
     Pullermann.rerun_on_target_change.should == true
   end
 
-  it 'run test preparation user defined block' do
+  it 'configures prepare block' do
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.setup do |config|
       config.test_preparation do 
         raise "test preparation"
       end
     end
-    lambda{Pullermann.run}.should raise_error String "test preparation"
+    Pullermann.run
+    lambda{Pullermann.prepare_block.call}.should raise_error String "test preparation"
+    
+  end
+
+  it 'configures execution block' do
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    Pullermann.setup do |config|
+      config.test_preparation do 
+        raise "test execution"
+      end
+    end
+    Pullermann.run
+    lambda{Pullermann.prepare_block.call}.should raise_error String "test execution"
     
   end
 
@@ -84,6 +99,7 @@ describe Pullermann do
   it 'uses sane fall back values'
 
   it 'configures variables correctly' do
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.setup do |configure|
       configure.username = "username"
       configure.password = "password"
