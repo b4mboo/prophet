@@ -63,4 +63,22 @@ describe Pullermann do
 
   it 'uses sane fall back values'
 
+  it 'configures variables correctly' do
+    Pullermann.setup do |configure|
+      configure.username = "username"
+      configure.password = "password"
+      configure.username_fail = "username_fail"
+      configure.password_fail = "password_fail"
+      configure.rerun_on_source_change = false
+      configure.rerun_on_target_change = false
+    end
+    Pullermann.username.should == "username"
+    Pullermann.password.should == "password"
+    Pullermann.username_fail.should == "username_fail"
+    Pullermann.password_fail.should == "password_fail"
+    Pullermann.rerun_on_source_change.should == false
+    Pullermann.rerun_on_target_change.should == false
+  end
+
+
 end
