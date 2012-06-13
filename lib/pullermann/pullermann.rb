@@ -40,15 +40,7 @@ class Pullermann
     end
 
     def run
-      # Enable runs without setup step (using only defaults).
-      configure unless @project
-      @github = Octokit::Client.new(:login => self.username, :password => self.password)
-      begin
-        @github.repo @project
-      rescue
-        abort 'Unable to login to github.'
-      end
-
+      connect_to_github
       # Loop through all 'open' pull requests.
       pull_requests.each do |request|
         @request_id = request["number"]
@@ -69,6 +61,19 @@ class Pullermann
 
     private
 
+    def connect_to_github
+      # Enable runs without setup step (using only defaults).
+      configure unless @project
+      @github = Octokit::Client.new(:login => self.username, :password => self.password)
+      # TODO: Look for a nicer way to check the successful login.
+      # TODO: Can the user actually access @project?
+      begin
+        @github.repo @project
+      rescue
+        abort 'Unable to login to github.'
+      end
+    end
+
     def set_project
       remote = git_config['remote.origin.url']
       @project = /:(.*)\.git/.match(remote)[1]
@@ -76,6 +81,7 @@ class Pullermann
     end
 
     def pull_requests
+      # FIXME: This call suddenly fails. Find the reason, fix it and catch future exceptions.
       pulls = @github.pulls @project, 'open'
       pulls.select! { |p| p.mergeable }
       puts "Found #{pulls.size} auto-mergeable pull requests.."
