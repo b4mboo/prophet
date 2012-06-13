@@ -17,6 +17,14 @@ describe Pullermann, 'in general' do
     @project = 'user/project'
   end
 
+  after(:each) do
+    # Empty all variables on Pullermann after each test.
+    # Since we're not working with instances, this hack is necessary.
+    Pullermann.instance_variables.each do |variable|
+      Pullermann.instance_variable_set variable, nil
+    end
+  end
+
   describe 'for normal runs' do
 
     before :each do
