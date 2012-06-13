@@ -31,7 +31,7 @@ describe Pullermann do
     end
   end
 
-  it 'configures populates variables with default values' do
+  it 'populates configuration variables with default values' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.run
     Pullermann.username.should == "default_login"
@@ -42,7 +42,7 @@ describe Pullermann do
     Pullermann.rerun_on_target_change.should == true
   end
 
-  it 'respects variable values if set manually' do
+  it 'respects configuration values if set manually' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.setup do |configure|
       configure.username = "username"
