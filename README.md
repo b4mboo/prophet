@@ -47,7 +47,7 @@ Inside that file you can set your options like this:
         `rake ci:setup:testunit`
       end
 
-      # Finally, specify which tests to run. (Defaults to `rake test:all`.)
+      # Finally, specify which tests to run. (Defaults to `rake test`.)
       # NOTE: Either ensure the last call in that block runs your tests
       # or manually set @result to a boolean inside this block.
       config.test_execution do

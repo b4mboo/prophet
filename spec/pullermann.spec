@@ -13,19 +13,17 @@ describe Pullermann, 'in general' do
     # Stub external dependencies @github (remote server).
     @github = mock 'GitHub'
     Octokit::Client.stub(:new).and_return(@github)
+    # Variables to use inside the tests.
+    @project = 'user/project'
   end
 
   describe 'for normal runs' do
 
     before :each do
-      project = 'user/project'
       @github.should_receive(:login)
       @github.should_receive(:api_version)
-      @github.should_receive(:repo).with(project)
-      pull_requests = mock 'pull requests'
-      @github.should_receive(:pulls).with(project, 'open').and_return(pull_requests)
-      pull_requests.should_receive(:size)
-      pull_requests.should_receive(:each)
+      @github.should_receive(:repo).with(@project)
+      @github.should_receive(:pulls).with(@project, 'open').and_return([])
       Pullermann.run
     end
 
@@ -35,7 +33,13 @@ describe Pullermann, 'in general' do
   end
 
 
-  it 'checks existing comments to determine the last test run'
+  it 'checks existing comments to determine the last test run' do
+    @github.should_receive(:login)
+    @github.should_receive(:api_version)
+    @github.should_receive(:repo).with(@project)
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    Pullermann.run
+  end
 
   it 'runs the tests when either source or target branch have changed'
 

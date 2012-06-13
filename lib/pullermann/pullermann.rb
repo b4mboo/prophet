@@ -67,7 +67,7 @@ class Pullermann
       # Find environment (project, tasks, connection, ...).
       set_project
       @prepare_block = lambda {}
-      @test_block = lambda { `rake test:all` }
+      @test_block = lambda { `rake test` }
       connect_to_github
     end
 
@@ -132,7 +132,8 @@ class Pullermann
             return true
           end
         else
-          puts "No git refs found in pullermann comments..."
+          puts "No git refs found in pullermann comments. Running tests..."
+          return true
         end
       end
       false
