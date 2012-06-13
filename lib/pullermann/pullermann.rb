@@ -12,7 +12,6 @@ class Pullermann
 
     # Take configuration from Rails application's initializer.
     def setup
-      configure
       yield self
     end
 
@@ -27,8 +26,7 @@ class Pullermann
     end
 
     def run
-      # Enable runs without setup step (using only defaults).
-      configure unless @project
+      configure
       connect_to_github
       # Loop through all 'open' pull requests.
       pull_requests.each do |request|
@@ -52,14 +50,14 @@ class Pullermann
 
     private
 
-    # Set default values for options.
+    # Set default fall back values for options that aren't set.
     def configure
-      self.username = git_config['github.login']
-      self.password = git_config['github.password']
-      self.username_fail = self.username
-      self.password_fail = self.password
-      self.rerun_on_source_change = true
-      self.rerun_on_target_change = true
+      self.username ||= git_config['github.login']
+      self.password ||= git_config['github.password']
+      self.username_fail ||= self.username
+      self.password_fail ||= self.password
+      self.rerun_on_source_change ||= true
+      self.rerun_on_target_change ||= true
       set_project
       @prepare_block = lambda {}
       @test_block = lambda { `rake test:all` }
