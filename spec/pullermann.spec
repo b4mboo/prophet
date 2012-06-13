@@ -6,13 +6,13 @@ describe Pullermann, 'in general' do
   before :each do
     # Variables to use inside the tests.
     @project = 'user/project'
-    # Stub external dependencies @gitconfig (local file).
+    # Stub external dependency @gitconfig (local file).
     Pullermann.stub(:git_config).and_return(
       'github.login' => 'default_login',
       'github.password' => 'default_password',
       'remote.origin.url' => 'git@github.com:user/project.git'
     )
-    # Stub external dependencies @github (remote server).
+    # Stub external dependency @github (remote server).
     @github = mock 'GitHub'
     Octokit::Client.stub(:new).and_return(@github)
     @github.should_receive(:login)
