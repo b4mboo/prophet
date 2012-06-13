@@ -49,6 +49,7 @@ class Pullermann
 
 
     private
+
     # Set default values for options.
     def configure
       self.username = git_config['github.login']
