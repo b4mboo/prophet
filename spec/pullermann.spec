@@ -94,10 +94,6 @@ describe Pullermann do
 
   it 'deletes obsolete comments whenever the result changes'
 
-  it 'allows for configuration by the user'
-
-  it 'uses sane fall back values'
-
   it 'configures variables correctly' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.setup do |configure|
