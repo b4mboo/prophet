@@ -68,6 +68,10 @@ manually or inside your CI (i.e. Jenkins).
 
     rake pullermann
 
+
+Non-Rails projects
+------------------
+
 If you want to use Pullermann for non-Rails projects the easiest way would
 probably be to install the gem manually.
 
