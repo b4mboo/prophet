@@ -33,6 +33,7 @@ class Pullermann
       pull_requests.each do |request|
         @request_id = request["number"]
         # Jump to next iteration if source and/or target haven't change since last run.
+        next unless test_run_neccessary?
         # Get to the already merged state.
         fetch_merged_state
         # Prepare project and CI (e.g. Jenkins) for the test run.
@@ -43,7 +44,8 @@ class Pullermann
         @result ||= $? == 0
         # Switch back to master branch.
         # FIXME: For branches other than master, remember the original branch.
-        `git co master`
+        puts "Switching back to master branch"
+        `git co master &> /dev/null`
         comment_on_github
       end
     end
@@ -73,8 +75,8 @@ class Pullermann
         @github.login
         puts "Successfully logged into github (api v#{@github.api_version}) with user #{self.username}"
         @github.repo @project
-      rescue
-        abort 'Unable to login to github project with user #{self.username}.'
+      rescue Octokit::Unauthorized => e
+        abort "Unable to login to github project with user #{self.username}: #{e.message}"
       end
     end
 
@@ -108,22 +110,22 @@ class Pullermann
         puts "New pull request detected, testrun needed"
         return true
       else
-        @master_head_sha = @github.commits(@project).first.sha
+        @master_head_sha ||= @github.commits(@project).first.sha
         @pull_head_sha = pull.head.sha
 
-        refs = nil
+        shas = nil
         comments.each do |comment|
-          refs = /master ref#(.+); pull ref#(.+)/.match(comment.body)
-          break if refs && refs[1] && refs[2]
+          shas = /master sha#(.+); pull sha#(.+)/.match(comment.body)
+          break if shas && shas[1] && shas[2]
         end
 
-        if refs && refs[1] && refs[2]
-          puts "Last testrun master ref: #{refs[1]}, pull ref: #{refs[2]}"
-          puts "Current master ref: #{@master_head_sha}, pull ref: #{@pull_head_sha}"
-          if self.rerun_on_source_change && (refs[2] != @pull_head_sha)
+        if shas && shas[1] && shas[2]
+          puts "Last testrun master sha: #{shas[1]}, pull sha: #{shas[2]}"
+          puts "Current master sha: #{@master_head_sha}, pull sha: #{@pull_head_sha}"
+          if self.rerun_on_source_change && (shas[2] != @pull_head_sha)
             puts "Re-running test due to new commit in pull request"
             return true
-          elsif self.rerun_on_target_change && (refs[1] != @master_head_sha)
+          elsif self.rerun_on_target_change && (shas[1] != @master_head_sha)
             puts "Re-running test due to new commit in master"
             return true
           end
@@ -138,17 +140,19 @@ class Pullermann
     # Fetch the merge-commit for the pull request.
     def fetch_merged_state
       # NOTE: This commit automatically created by 'GitHub Merge Button'.
-      `git fetch origin refs/pull/#{@request_id}/merge:`
-      `git checkout FETCH_HEAD`
+      `git fetch origin refs/pull/#{@request_id}/merge: &> /dev/null`
+      `git checkout FETCH_HEAD &> /dev/null`
+      abort("Error: Unable to switch to merge branch") unless ($? == 0)
     end
 
 
     # Output the result to a comment on the pull request on GitHub.
     def comment_on_github
+      sha_string = "\n( master sha# #{@master_head_sha} ; pull sha# #{@pull_head_sha} )"
       if @result
-        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request." }' -u "#{self.username}:#{self.password}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
+        `curl -d '{ "body": "Well done! All tests are still passing after merging this pull request. #{sha_string}" }' -u "#{self.username}:#{self.password}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
       else
-        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request." }' -u "#{self.username_fail}:#{self.password_fail}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
+        `curl -d '{ "body": "Unfortunately your tests are failing after merging this pull request. #{sha_string}" }' -u "#{self.username_fail}:#{self.password_fail}" -X POST https://api.github.com/repos/#{@project}/issues/#{@request_id}/comments;`
       end
     end
 
