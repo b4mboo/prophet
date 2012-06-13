@@ -7,7 +7,9 @@ class Pullermann
                   :username_fail,
                   :password_fail,
                   :rerun_on_source_change,
-                  :rerun_on_target_change
+                  :rerun_on_target_change,
+                  :prepare_block,
+                  :test_block
 
 
     # Take configuration from Rails application's initializer.

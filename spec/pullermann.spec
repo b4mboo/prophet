@@ -38,6 +38,16 @@ describe Pullermann do
     Pullermann.rerun_on_target_change.should == true
   end
 
+  it 'run test preparation user defined block' do
+    Pullermann.setup do |config|
+      config.test_preparation do 
+        raise "test preparation"
+      end
+    end
+    lambda{Pullermann.run}.should raise_error String "test preparation"
+    
+  end
+
   it 'loops through all open pull requests' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     Pullermann.run
