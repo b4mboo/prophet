@@ -15,17 +15,25 @@ describe Pullermann, 'in general' do
     Octokit::Client.stub(:new).and_return(@github)
   end
 
-  it 'loops through all open pull requests' do
-    project = 'user/project'
-    @github.should_receive(:login)
-    @github.should_receive(:api_version)
-    @github.should_receive(:repo).with(project)
-    pull_requests = mock 'pull requests'
-    @github.should_receive(:pulls).with(project, 'open').and_return(pull_requests)
-    pull_requests.should_receive(:size)
-    pull_requests.should_receive(:each)
-    Pullermann.run
+  describe 'for normal runs' do
+
+    before :each do
+      project = 'user/project'
+      @github.should_receive(:login)
+      @github.should_receive(:api_version)
+      @github.should_receive(:repo).with(project)
+      pull_requests = mock 'pull requests'
+      @github.should_receive(:pulls).with(project, 'open').and_return(pull_requests)
+      pull_requests.should_receive(:size)
+      pull_requests.should_receive(:each)
+      Pullermann.run
+    end
+
+    it 'loops through all open pull requests' do
+    end
+
   end
+
 
   it 'checks existing comments to determine the last test run'
 
