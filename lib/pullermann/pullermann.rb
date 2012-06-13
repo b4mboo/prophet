@@ -66,8 +66,8 @@ class Pullermann
       self.rerun_on_target_change ||= true
       # Find environment (project, tasks, connection, ...).
       set_project
-      @prepare_block = lambda {}
-      @test_block = lambda { `rake test` }
+      @prepare_block ||= lambda {}
+      @test_block ||= lambda { `rake test` }
       connect_to_github
     end
 
