@@ -106,7 +106,7 @@ class Pullermann
       # get git sha ids of master and branch state during last testrun
 
       comments = @github.issue_comments(@project, @request_id)
-      comments.select! { |c| [username, username_fail].include?(c.user.login) }.reverse
+      comments = comments.select{ |c| [username, username_fail].include?(c.user.login) }.reverse
 
       if comments.empty?
         puts "New pull request detected, testrun needed"
@@ -117,7 +117,7 @@ class Pullermann
 
         shas = nil
         comments.each do |comment|
-          shas = /master sha#(.+); pull sha#(.+)/.match(comment.body)
+          shas = /master sha# ([\w]+) ; pull sha# ([\w]+)/.match(comment.body)
           break if shas && shas[1] && shas[2]
         end
 
