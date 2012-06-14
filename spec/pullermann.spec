@@ -89,7 +89,22 @@ describe Pullermann do
     @pullermann.run
   end
 
-  it 'uses two different users for commenting (success/failure)'
+  it 'uses two different users for commenting (success/failure)' do
+    config_block = lambda do |config|
+      config.username = 'username'
+      config.username_fail = 'username_fail'
+    end
+    config_block.call @pullermann
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @pullermann.instance_variable_set(:@result, false)
+    @pullermann.instance_variable_set(:@github, @github)
+    @pullermann.should_receive(:connect_to_github).exactly(2).times
+    @github.should_receive(:add_comment)
+    @pullermann.run
+  end
 
   it 'updates existing comments to reduce noise'
 
