@@ -74,10 +74,9 @@ describe Pullermann do
     comment.should_receive(:body).and_return('old_sha')
     @pullermann.should_receive(:rerun_on_source_change)
     @pullermann.should_receive(:rerun_on_target_change)
-    # Skip the rest, as we test this in other tests.
-    @pullermann.stub(:switch_branch_to_merged_state)
-    @pullermann.stub(:switch_branch_back)
-    @pullermann.stub(:comment_on_github)
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:comment_on_github)
     @pullermann.run
   end
 
