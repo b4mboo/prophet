@@ -150,7 +150,6 @@ class Pullermann
     false
   end
 
-
   def switch_branch_to_merged_state
     # Fetch the merge-commit for the pull request.
     # NOTE: This commit is automatically created by 'GitHub Merge Button'.
@@ -175,14 +174,15 @@ class Pullermann
   def comment_on_github
     sha_string = "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
     if @result
-      client = Octokit::Client.new(:login => self.username, :password => self.password)
-      client.add_comment(@project, @request_id,
-                         "Well done! All tests are still passing after merging this pull request. #{sha_string}")
+      message = 'Well done! All tests are still passing after merging this pull request. '
     else
-      client = Octokit::Client.new(:login => self.username_fail, :password => self.password_fail)
-      client.add_comment(@project, @request_id,
-                         "Unfortunately your tests are failing after merging this pull request. #{sha_string}")
+      unless self.username == self.username_fail
+        # Re-connect with username_fail and password_fail.
+        connect_to_github(self.username, self.password)
+      end
+      message = 'Unfortunately your tests are failing after merging this pull request. '
     end
+    @github.add_comment(@project, @request_id, message + sha_string)
   end
 
   # Collect git config information in a Hash for easy access.

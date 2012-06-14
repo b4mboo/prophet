@@ -81,7 +81,12 @@ describe Pullermann do
   end
 
   it 'posts comments to GitHub' do
-
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @github.should_receive(:add_comment)
+    @pullermann.run
   end
 
   it 'uses two different users for commenting (success/failure)'
