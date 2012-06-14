@@ -72,28 +72,28 @@ class Pullermann
     self.password_fail ||= self.password
     self.rerun_on_source_change = true unless self.rerun_on_source_change == false
     self.rerun_on_target_change = true unless self.rerun_on_target_change == false
-    # Find environment (project, tasks, connection, ...).
-    set_project
+    # Find environment (tasks, project, ...).
     @prepare_block ||= lambda {}
     @test_block ||= lambda { `rake test` }
     connect_to_github
   end
 
-  def connect_to_github
-    @github = Octokit::Client.new(:login => self.username, :password => self.password)
+  def connect_to_github(user = self.username, pass = self.password)
+    @github = Octokit::Client.new(
+      :login => user,
+      :password => pass
+    )
+    # Check user login to GitHub.
+    @github.login
+    @log.info "Successfully logged into GitHub (API v#{@github.api_version}) with user '#{user}'."
+    # Ensure the user has access to desired project.
+    @project = /:(.*)\.git/.match(git_config['remote.origin.url'])[1]
     begin
-      @github.login
-      @log.info "Successfully logged into github (api v#{@github.api_version}) with user #{self.username}"
       @github.repo @project
+      @log.info "Successfully accessed GitHub project '#{@project}'"
     rescue Octokit::Unauthorized => e
-      abort "Unable to login to github project with user #{self.username}: #{e.message}"
+      abort "Unable to access GitHub project with user '#{user}':\n#{e.message}"
     end
-  end
-
-  def set_project
-    remote = git_config['remote.origin.url']
-    @project = /:(.*)\.git/.match(remote)[1]
-    @log.info "Using github project: #{@project}"
   end
 
   def pull_requests
