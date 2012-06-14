@@ -115,6 +115,9 @@ class Pullermann
       @log.info 'Pull request not auto-mergeable, skipping... '
       return false
     end
+    # Compare current sha ids of target and source branch with those from the last test run.
+    @target_head_sha = @github.commits(@project).first.sha
+    @pull_head_sha = pull_request.head.sha
     comments = @github.issue_comments(@project, @request_id)
     comments = comments.select{ |c| [username, username_fail].include?(c.user.login) }.reverse
     if comments.empty?
@@ -122,9 +125,6 @@ class Pullermann
       @log.info 'New pull request detected, test run needed.'
       return true
     else
-      # Compare current sha ids of target and source branch with those from the last test run.
-      @target_head_sha = @github.commits(@project).first.sha
-      @pull_head_sha = pull_request.head.sha
       # Initialize shas to ensure it will live on after the 'each' block.
       shas = nil
       comments.each do |comment|

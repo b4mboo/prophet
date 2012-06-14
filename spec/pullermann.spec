@@ -41,6 +41,8 @@ describe Pullermann do
     @github.should_receive(:pull_request).with(@project, @request_id).and_return(pull_request)
     # See if we're actually querying for issue comments.
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([])
+    @github.stub_chain(:commits, :first, :sha).and_return('master sha')
+    pull_request.stub_chain(:head, :sha)
     # Skip the rest, as we test this in other tests.
     @pullermann.stub(:switch_branch_to_merged_state)
     @pullermann.stub(:switch_branch_back)
