@@ -175,14 +175,34 @@ class Pullermann
     `git co master &> /dev/null`
   end
 
+  # Analyze old comment to see whether it was a successful or a failing one.
+  def old_comment_success?
+    return unless @comment
+    # Determine boolean value.
+  end
+
   # Output the result to a comment on the pull request on GitHub.
   def comment_on_github
-    # Analyze old comment to see whether it was a successful or a failing one.
-    # Compare with @test_success to determine whether we need to update the old one
-    # or delete it and create a new one.
-    # In case we need to update it, just use the right user and replace the body.
-    # In case we need to delete and create a new one first use the current connection
-    # to do the one thing then reconnect with the new user and do the other.
+    case old_comment_success?
+    when @test_success
+      # Re-connect to GitHub unless @test_success.
+      # Replace existing @comment's body.
+    when !@test_success
+      # In case we need to delete and create a new one first use the current connection
+      # to do the one thing then reconnect with the new user and do the other.
+      if @test_success
+        # Delete old @comment.
+        # Re-connect to GitHub.
+        # Create new comment.
+      else
+        # Create new comment.
+        # Re-connect to GitHub.
+        # Delete old @comment.
+      end
+      # Delete old @comment.
+    else
+      # Create a new comment.
+    end
     sha_string = "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
     if @test_success
       message = 'Well done! All tests are still passing after merging this pull request. '
