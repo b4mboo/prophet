@@ -123,13 +123,17 @@ class Pullermann
       return true
     else
       # Compare current sha ids of target and source branch with those from the last test run.
-      @target_head_sha ||= @github.commits(@project).first.sha
+      @target_head_sha = @github.commits(@project).first.sha
       @pull_head_sha = pull_request.head.sha
       # Initialize shas to ensure it will live on after the 'each' block.
       shas = nil
       comments.each do |comment|
         shas = /master sha# ([\w]+) ; pull sha# ([\w]+)/.match(comment.body)
-        break if shas && shas[1] && shas[2]
+        if shas && shas[1] && shas[2]
+          # Remember @comment to be able to update or delete it later.
+          @comment = comment
+          break
+        end
       end
       # We finally found the latest comment that includes the necessary information.
       if shas && shas[1] && shas[2]
@@ -173,6 +177,12 @@ class Pullermann
 
   # Output the result to a comment on the pull request on GitHub.
   def comment_on_github
+    # Analyze old comment to see whether it was a successful or a failing one.
+    # Compare with @test_success to determine whether we need to update the old one
+    # or delete it and create a new one.
+    # In case we need to update it, just use the right user and replace the body.
+    # In case we need to delete and create a new one first use the current connection
+    # to do the one thing then reconnect with the new user and do the other.
     sha_string = "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
     if @test_success
       message = 'Well done! All tests are still passing after merging this pull request. '
