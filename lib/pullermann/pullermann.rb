@@ -189,25 +189,11 @@ class Pullermann
 
   # Output the result to a comment on the pull request on GitHub.
   def comment_on_github
-    case old_comment_success?
-    when @test_success
-      # Re-connect to GitHub unless @test_success.
-      # Replace existing @comment's body.
-    when !@test_success
-      # In case we need to delete and create a new one first use the current connection
-      # to do the one thing then reconnect with the new user and do the other.
-      if @test_success
-        # Delete old @comment.
-        # Re-connect to GitHub.
-        # Create new comment.
-      else
-        # Create new comment.
-        # Re-connect to GitHub.
-        # Delete old @comment.
-      end
-      # Delete old @comment.
+    if old_comment_success? == @test_success
+      # Replace existing @comment's body with the correct connection.
     else
-      # Create a new comment.
+      # Delete old @comment with correct connection (if @comment exists).
+      # Create new comment with correct connection.
     end
     sha_string = "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
     if @test_success
