@@ -46,7 +46,7 @@ class Pullermann
       self.test_block.call
       # Unless already set, the success/failure is determined by the last
       # command's return code.
-      @result ||= $? == 0
+      @test_success ||= $? == 0
       # We need to switch back to the original branch in case we need to test
       # more pull requests.
       switch_branch_back
@@ -174,7 +174,7 @@ class Pullermann
   # Output the result to a comment on the pull request on GitHub.
   def comment_on_github
     sha_string = "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
-    if @result
+    if @test_success
       message = 'Well done! All tests are still passing after merging this pull request. '
     else
       unless self.username == self.username_fail
