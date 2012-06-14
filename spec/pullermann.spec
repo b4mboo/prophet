@@ -28,7 +28,7 @@ describe Pullermann do
   it 'loops through all open pull requests' do
     pull_requests = mock 'pull requests'
     @github.should_receive(:pulls).with(@project, 'open').and_return(pull_requests)
-    pull_requests.should_receive(:size)
+    pull_requests.should_receive(:size).and_return(0)
     pull_requests.should_receive(:each)
     @pullermann.run
   end
@@ -80,7 +80,9 @@ describe Pullermann do
     @pullermann.run
   end
 
-  it 'posts comments to GitHub'
+  it 'posts comments to GitHub' do
+
+  end
 
   it 'uses two different users for commenting (success/failure)'
 

@@ -92,13 +92,14 @@ class Pullermann
       @github.repo @project
       @log.info "Successfully accessed GitHub project '#{@project}'"
     rescue Octokit::Unauthorized => e
-      abort "Unable to access GitHub project with user '#{user}':\n#{e.message}"
+      @log.error "Unable to access GitHub project with user '#{user}':\n#{e.message}"
+      abort
     end
   end
 
   def pull_requests
     pulls = @github.pulls @project, 'open'
-    @log.info "Found #{pulls.size} pull requests in #{@project}.."
+    @log.info "Found #{pulls.size > 0 ? pulls.size : 'no'} open pull requests in '#{@project}'."
     pulls
   end
 
@@ -153,14 +154,20 @@ class Pullermann
   def switch_branch_to_merged_state
     # Fetch the merge-commit for the pull request.
     # NOTE: This commit is automatically created by 'GitHub Merge Button'.
+    # FIXME: Use cheetah to pipe to @log.debug instead of that /dev/null hack.
     `git fetch origin refs/pull/#{@request_id}/merge: &> /dev/null`
     `git checkout FETCH_HEAD &> /dev/null`
-    abort("Error: Unable to switch to merge branch") unless ($? == 0)
+    unless $? == 0
+      @log.error 'Unable to switch to merge branch.'
+      abort
+    end
+
   end
 
   def switch_branch_back
+    # FIXME: Use cheetah to pipe to @log.debug instead of that /dev/null hack.
+    @log.info 'Switching back to original branch.'
     # FIXME: For branches other than master, remember the original branch.
-    @log.info "Switching back to master branch"
     `git co master &> /dev/null`
   end
 
