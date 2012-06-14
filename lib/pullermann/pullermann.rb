@@ -75,22 +75,28 @@ class Pullermann
     # Find environment (tasks, project, ...).
     @prepare_block ||= lambda {}
     @test_block ||= lambda { `rake test` }
-    connect_to_github
+    @github = connect_to_github
+    @github_fail = if self.username == self.username_fail
+      @github
+    else
+      connect_to_github self.username_fail, self.password_fail
+    end
   end
 
   def connect_to_github(user = self.username, pass = self.password)
-    @github = Octokit::Client.new(
+    github = Octokit::Client.new(
       :login => user,
       :password => pass
     )
     # Check user login to GitHub.
-    @github.login
-    @log.info "Successfully logged into GitHub (API v#{@github.api_version}) with user '#{user}'."
+    github.login
+    @log.info "Successfully logged into GitHub (API v#{github.api_version}) with user '#{user}'."
     # Ensure the user has access to desired project.
-    @project = /:(.*)\.git/.match(git_config['remote.origin.url'])[1]
+    @project ||= /:(.*)\.git/.match(git_config['remote.origin.url'])[1]
     begin
-      @github.repo @project
+      github.repo @project
       @log.info "Successfully accessed GitHub project '#{@project}'"
+      github
     rescue Octokit::Unauthorized => e
       @log.error "Unable to access GitHub project with user '#{user}':\n#{e.message}"
       abort
@@ -206,14 +212,12 @@ class Pullermann
     sha_string = "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
     if @test_success
       message = 'Well done! All tests are still passing after merging this pull request. '
+      github = @github
     else
-      unless self.username == self.username_fail
-        # Re-connect with username_fail and password_fail.
-        connect_to_github(self.username, self.password)
-      end
       message = 'Unfortunately your tests are failing after merging this pull request. '
+      github = @github_fail
     end
-    @github.add_comment(@project, @request_id, message + sha_string)
+    github.add_comment(@project, @request_id, message + sha_string)
   end
 
   # Collect git config information in a Hash for easy access.

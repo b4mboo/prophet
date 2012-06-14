@@ -102,8 +102,7 @@ describe Pullermann do
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @pullermann.instance_variable_set(:@test_success, false)
-    @pullermann.instance_variable_set(:@github, @github)
-    @pullermann.should_receive(:connect_to_github).exactly(2).times
+    @pullermann.should_receive(:connect_to_github).exactly(2).times.and_return(@github)
     @github.should_receive(:add_comment)
     @pullermann.run
   end
