@@ -4,13 +4,14 @@ require 'pullermann'
 describe Pullermann do
 
   before :each do
-    Pullermann.log_level = Logger::WARN
+    @pullermann = Pullermann.new
+    @pullermann.log_level = Logger::WARN
     # Variables to use inside the tests.
     @project = 'user/project'
-    Pullermann.prepare_block= lambda{}
-    Pullermann.test_block = lambda{}
+    @pullermann.prepare_block= lambda { }
+    @pullermann.test_block = lambda { }
     # Stub external dependency @gitconfig (local file).
-    Pullermann.stub(:git_config).and_return(
+    @pullermann.stub(:git_config).and_return(
       'github.login' => 'default_login',
       'github.password' => 'default_password',
       'remote.origin.url' => 'git@github.com:user/project.git'
@@ -23,69 +24,57 @@ describe Pullermann do
     @github.stub(:repo).with(@project)
   end
 
-  after :each do
-    # Empty all variables on Pullermann after each test.
-    # Since we're not working with instances, this hack is necessary.
-    Pullermann.instance_variables.each do |variable|
-      Pullermann.instance_variable_set variable, nil
-    end
-  end
-
   it 'populates configuration variables with default values' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
-    Pullermann.run
-    Pullermann.username.should == "default_login"
-    Pullermann.password.should == "default_password"
-    Pullermann.username_fail.should == "default_login"
-    Pullermann.password_fail.should == "default_password"
-    Pullermann.rerun_on_source_change.should == true
-    Pullermann.rerun_on_target_change.should == true
+    @pullermann.run
+    @pullermann.username.should == 'default_login'
+    @pullermann.password.should == 'default_password'
+    @pullermann.username_fail.should == 'default_login'
+    @pullermann.password_fail.should == 'default_password'
+    @pullermann.rerun_on_source_change.should == true
+    @pullermann.rerun_on_target_change.should == true
   end
 
   it 'respects configuration values if set manually' do
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
-    Pullermann.setup do |configure|
-      configure.username = "username"
-      configure.password = "password"
-      configure.username_fail = "username_fail"
-      configure.password_fail = "password_fail"
-      configure.rerun_on_source_change = false
-      configure.rerun_on_target_change = false
+    config_block = lambda do |config|
+      config.username = 'username'
+      config.password = 'password'
+      config.username_fail = 'username_fail'
+      config.password_fail = 'password_fail'
+      config.rerun_on_source_change = false
+      config.rerun_on_target_change = false
     end
-    Pullermann.run
-    Pullermann.username.should == "username"
-    Pullermann.password.should == "password"
-    Pullermann.username_fail.should == "username_fail"
-    Pullermann.password_fail.should == "password_fail"
-    Pullermann.rerun_on_source_change.should == false
-    Pullermann.rerun_on_target_change.should == false
+    config_block.call @pullermann
+    @pullermann.username.should == 'username'
+    @pullermann.password.should == 'password'
+    @pullermann.username_fail.should == 'username_fail'
+    @pullermann.password_fail.should == 'password_fail'
+    @pullermann.rerun_on_source_change.should == false
+    @pullermann.rerun_on_target_change.should == false
   end
 
   it 'allows custom commands for test preparation' do
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
-    Pullermann.setup do |config|
-      config.test_preparation do
-        raise "test preparation"
-      end
+    config_block = lambda do |config|
+      config.test_preparation { raise 'test preparation' }
     end
-    Pullermann.run
-    lambda { Pullermann.prepare_block.call }.should raise_error String "test preparation"
+    config_block.call @pullermann
+    lambda { @pullermann.prepare_block.call }.should raise_error 'test preparation'
   end
 
   it 'allows custom commands for test execution' do
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
-    Pullermann.setup do |config|
-      config.test_preparation do
-        raise "test execution"
-      end
+    config_block = lambda do |config|
+      config.test_preparation { raise 'test execution' }
     end
-    Pullermann.run
-    lambda { Pullermann.prepare_block.call }.should raise_error String "test execution"
+    config_block.call @pullermann
+    lambda { @pullermann.prepare_block.call }.should raise_error 'test execution'
   end
 
   it 'loops through all open pull requests' do
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
-    Pullermann.run
+    pull_requests = mock 'pull requests'
+    @github.should_receive(:pulls).with(@project, 'open').and_return(pull_requests)
+    pull_requests.should_receive(:size)
+    pull_requests.should_receive(:each)
+    @pullermann.run
   end
 
   it 'checks existing comments to determine the last test run' do
@@ -98,10 +87,10 @@ describe Pullermann do
     # See if we're actually querying for issue comments.
     @github.should_receive(:issue_comments).with(@project, request_id).and_return([])
     # Skip the rest, as we will test this in other tests.
-    Pullermann.stub(:switch_branch_to_merged_state)
-    Pullermann.stub(:switch_branch_back)
-    Pullermann.stub(:comment_on_github)
-    Pullermann.run
+    @pullermann.stub(:switch_branch_to_merged_state)
+    @pullermann.stub(:switch_branch_back)
+    @pullermann.stub(:comment_on_github)
+    @pullermann.run
   end
 
   it 'runs the tests when either source or target branch have changed'
