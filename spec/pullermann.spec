@@ -32,7 +32,7 @@ describe Pullermann do
     @pullermann.run
   end
 
-  it 'checks existing comments to determine the last test run' do
+  it 'checks existing comments to determine whether a test run is necessary' do
     pull_request = mock 'pull request'
     request_id = 42
     pull_request.should_receive(:title).and_return('mock request')
@@ -44,6 +44,18 @@ describe Pullermann do
     # Skip the rest, as we will test this in other tests.
     @pullermann.stub(:switch_branch_to_merged_state)
     @pullermann.stub(:switch_branch_back)
+    @pullermann.stub(:comment_on_github)
+    @pullermann.run
+  end
+
+  it 'runs the tests on the merged code' do
+    request_id = 42
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => request_id}])
+    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.stub(:abort)
+    @pullermann.should_receive(:'`').with("git fetch origin refs/pull/#{request_id}/merge: &> /dev/null")
+    @pullermann.should_receive(:'`').with('git checkout FETCH_HEAD &> /dev/null')
+    @pullermann.should_receive(:'`').with('git co master &> /dev/null')
     @pullermann.stub(:comment_on_github)
     @pullermann.run
   end

@@ -35,7 +35,7 @@ class Pullermann
     pull_requests.each do |request|
       @request_id = request['number']
       # Jump to next iteration if source and/or target haven't change since last run.
-      next unless test_run_neccessary?
+      next unless test_run_necessary?
       # GitHub always creates a merge commit for its 'Merge Button'.
       switch_branch_to_merged_state
       # Prepare project and CI (e.g. Jenkins) for the test run.
@@ -102,12 +102,16 @@ class Pullermann
     pulls
   end
 
-  def test_run_neccessary?
+  # Test runs are necessary if:
+  # - the pull request hasn't been tested before.
+  # - the pull request has been updated since the last run.
+  # - the target (i.e. master) has been updated since the last run.
+  def test_run_necessary?
     pull = @github.pull_request @project, @request_id
     @log.info "Checking pull request ##{@request_id}: #{pull.title}"
 
     unless pull.mergeable
-      @log.info "Pull request not auto-mergeable, skipping... "
+      @log.info 'Pull request not auto-mergeable, skipping... '
       return false
     end
 
@@ -140,7 +144,7 @@ class Pullermann
           return true
         end
       else
-        @log.info "No git refs found in pullermann comments. Running tests..."
+        @log.info "New pull request detected, testrun needed"
         return true
       end
     end
