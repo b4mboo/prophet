@@ -5,7 +5,7 @@ describe Pullermann do
 
   before :each do
     @pullermann = Pullermann.new
-    @pullermann.log_level = Logger::WARN
+    @pullermann.log_level = Logger::FATAL
     # Variables to use inside the tests.
     @request_id = 42
     @project = 'user/project'
@@ -107,9 +107,34 @@ describe Pullermann do
     @pullermann.run
   end
 
-  it 'updates existing comments to reduce noise'
+  it 'updates existing comments to reduce noise' do
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @pullermann.instance_variable_set(:@test_success, true)
+    comment = mock 'comment'
+    @pullermann.instance_variable_set(:@comment, comment)
+    comment.should_receive(:[])
+    @pullermann.should_receive(:old_comment_success?).and_return(true)
+    @github.should_receive(:update_comment)
+    @pullermann.run
+  end
 
-  it 'deletes obsolete comments whenever the result changes'
+  it 'deletes obsolete comments whenever the result changes' do
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @pullermann.instance_variable_set(:@test_success, false)
+    comment = mock 'comment'
+    @pullermann.instance_variable_set(:@comment, comment)
+    comment.should_receive(:[])
+    @pullermann.should_receive(:old_comment_success?).and_return(true)
+    @github.should_receive(:delete_comment)
+    @github.should_receive(:add_comment)
+    @pullermann.run
+  end
 
   it 'populates configuration variables with default values' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
