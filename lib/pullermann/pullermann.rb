@@ -185,25 +185,32 @@ class Pullermann
   def old_comment_success?
     return unless @comment
     # Determine boolean value.
+    @comment['body'].include? 'Well done!'
   end
 
   # Output the result to a comment on the pull request on GitHub.
   def comment_on_github
+    # Determine comment message.
+    message = if @test_success
+      'Well done! All tests are still passing after merging this pull request.'
+    else
+      'Unfortunately your tests are failing after merging this pull request.'
+    end
+    message += "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
     if old_comment_success? == @test_success
       # Replace existing @comment's body with the correct connection.
+      call_github(@test_success).update_comment(@project, @comment['id'], message)
     else
       # Delete old @comment with correct connection (if @comment exists).
+      call_github(!@test_success).delete_comment(@project, @comment['id']) if @comment
       # Create new comment with correct connection.
+      call_github.add_comment(@project, @request_id, message)
     end
-    sha_string = "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
-    if @test_success
-      message = 'Well done! All tests are still passing after merging this pull request. '
-      github = @github
-    else
-      message = 'Unfortunately your tests are failing after merging this pull request. '
-      github = @github_fail
-    end
-    github.add_comment(@project, @request_id, message + sha_string)
+  end
+
+  # Determine which connection to GitHub should be used for the call.
+  def call_github(use_default_user = true)
+    use_default_user ? @github : @github_fail
   end
 
   # Collect git config information in a Hash for easy access.
