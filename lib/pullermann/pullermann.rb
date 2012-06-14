@@ -147,6 +147,7 @@ class Pullermann
         return true
       end
     end
+    @log.info "Not running tests for request ##{@request_id}."
     false
   end
 
