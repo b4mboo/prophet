@@ -133,8 +133,11 @@ class Pullermann
     end
     # If it's not mergeable, we need to delete all comments of former test runs.
     unless pull_request.mergeable
-      @log.info 'Pull request not auto-mergeable, skipping... '
-      call_github(old_comment_success?).delete_comment(@project, @comment.id) if @comment
+      @log.info 'Pull request not auto-mergeable. Not running tests.'
+      if @comment
+        @log.info 'Deleting existing comment.'
+        call_github(old_comment_success?).delete_comment(@project, @comment.id)
+      end
       return false
     end
     if @comment
@@ -187,20 +190,29 @@ class Pullermann
   def comment_on_github
     # Determine comment message.
     message = if @test_success
+      @log.info 'Tests are passing.'
       'Well done! All tests are still passing after merging this pull request.'
     else
+      @log.info 'Tests are failing.'
       'Unfortunately your tests are failing after merging this pull request.'
     end
     message += "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
     if old_comment_success? == @test_success
       # Replace existing @comment's body with the correct connection.
+      @log.info "Updating existing #{notion(@test_success)} comment."
       call_github(@test_success).update_comment(@project, @comment['id'], message)
     else
+      @log.info "Deleting existing #{notion(!@test_success)} comment."
       # Delete old @comment with correct connection (if @comment exists).
       call_github(!@test_success).delete_comment(@project, @comment['id']) if @comment
       # Create new comment with correct connection.
-      call_github.add_comment(@project, @request_id, message)
+      @log.info "Adding new #{notion(@test_success)} comment."
+      call_github(@test_success).add_comment(@project, @request_id, message)
     end
+  end
+
+  def notion(success)
+    success ? 'positive' : 'negative'
   end
 
   # Determine which connection to GitHub should be used for the call.
