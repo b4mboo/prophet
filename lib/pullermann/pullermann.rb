@@ -169,7 +169,6 @@ class Pullermann
       @log.error 'Unable to switch to merge branch.'
       abort
     end
-
   end
 
   def switch_branch_back
