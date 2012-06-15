@@ -136,6 +136,21 @@ describe Pullermann do
     @pullermann.run
   end
 
+  it 'deletes old comment whenever the pull is not mergeable' do
+    pull_request = mock 'pull request'
+    pull_request.should_receive(:title).and_return('mock request')
+    pull_request.should_receive(:mergeable).and_return(false)
+    @github.should_receive(:pull_request).with(@project, @request_id).and_return(pull_request)
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.instance_variable_set(:@test_success, false)
+    comment = mock 'comment'
+    @pullermann.instance_variable_set(:@comment, comment)
+    comment.should_receive(:[])
+    @pullermann.should_receive(:old_comment_success?).and_return(true)
+    @github.should_receive(:delete_comment)
+    @pullermann.run
+  end
+
   it 'populates configuration variables with default values' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     @pullermann.run
