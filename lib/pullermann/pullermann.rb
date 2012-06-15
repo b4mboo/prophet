@@ -116,46 +116,41 @@ class Pullermann
   def test_run_necessary?
     pull_request = @github.pull_request @project, @request_id
     @log.info "Checking pull request ##{@request_id}: #{pull_request.title}"
-    # If it's not mergeable, there is no point in going on.
-    unless pull_request.mergeable
-      @log.info 'Pull request not auto-mergeable, skipping... '
-      return false
-    end
     # Compare current sha ids of target and source branch with those from the last test run.
     @target_head_sha = @github.commits(@project).first.sha
     @pull_head_sha = pull_request.head.sha
     comments = @github.issue_comments(@project, @request_id)
     comments = comments.select{ |c| [username, username_fail].include?(c.user.login) }.reverse
-    if comments.empty?
+    # Initialize shas to ensure it will live on after the 'each' block.
+    shas = nil
+    comments.each do |comment|
+      shas = /master sha# ([\w]+) ; pull sha# ([\w]+)/.match(comment.body)
+      if shas && shas[1] && shas[2]
+        # Remember @comment to be able to update or delete it later.
+        @comment = comment
+        break
+      end
+    end
+    # If it's not mergeable, we need to delete all comments of former test runs.
+    unless pull_request.mergeable
+      @log.info 'Pull request not auto-mergeable, skipping... '
+      call_github(old_comment_success?).delete_comment(@project, @comment.id) if @comment
+      return false
+    end
+    if @comment
+      @log.info "Current target sha: '#{@target_head_sha}', pull sha: '#{@pull_head_sha}'."
+      @log.info "Last test run target sha: '#{shas[1]}', pull sha: '#{shas[2]}'."
+      if self.rerun_on_source_change && (shas[2] != @pull_head_sha)
+        @log.info 'Re-running test due to new commit in pull request.'
+        return true
+      elsif self.rerun_on_target_change && (shas[1] != @target_head_sha)
+        @log.info 'Re-running test due to new commit in target branch.'
+        return true
+      end
+    else
       # If there are no comments yet, it has to be a new request.
       @log.info 'New pull request detected, test run needed.'
       return true
-    else
-      # Initialize shas to ensure it will live on after the 'each' block.
-      shas = nil
-      comments.each do |comment|
-        shas = /master sha# ([\w]+) ; pull sha# ([\w]+)/.match(comment.body)
-        if shas && shas[1] && shas[2]
-          # Remember @comment to be able to update or delete it later.
-          @comment = comment
-          break
-        end
-      end
-      # We finally found the latest comment that includes the necessary information.
-      if shas && shas[1] && shas[2]
-        @log.info "Current target sha: '#{@target_head_sha}', pull sha: '#{@pull_head_sha}'."
-        @log.info "Last test run target sha: '#{shas[1]}', pull sha: '#{shas[2]}'."
-        if self.rerun_on_source_change && (shas[2] != @pull_head_sha)
-          @log.info 'Re-running test due to new commit in pull request.'
-          return true
-        elsif self.rerun_on_target_change && (shas[1] != @target_head_sha)
-          @log.info 'Re-running test due to new commit in target branch.'
-          return true
-        end
-      else
-        @log.info 'New pull request detected, test run needed.'
-        return true
-      end
     end
     @log.info "Not running tests for request ##{@request_id}."
     false
@@ -185,7 +180,7 @@ class Pullermann
   def old_comment_success?
     return unless @comment
     # Determine boolean value.
-    @comment['body'].include? 'Well done!'
+    @comment.body.include? 'Well done!'
   end
 
   # Output the result to a comment on the pull request on GitHub.

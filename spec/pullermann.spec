@@ -151,6 +151,30 @@ describe Pullermann do
     @pullermann.run
   end
 
+  it 'deletes obsolete comments whenever the request is no longer mergeable' do
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    pull_request = mock 'pull request'
+    @github.should_receive(:pull_request).with(@project, @request_id).and_return(pull_request)
+    pull_request.should_receive(:title).and_return('mock request')
+    pull_request.should_receive(:mergeable).and_return(false)
+    comment = mock 'comment'
+    @github.should_receive(:issue_comments).with(@project, @request_id).and_return([comment])
+    # Ensure that we take a look at the comment and compare shas.
+    comment.stub_chain(:user, :login).and_return('default_login')
+    @github.stub_chain(:commits, :first, :sha).and_return('foo')
+    pull_request.stub_chain(:head, :sha).and_return('bar')
+    comment.should_receive(:body).twice.and_return('Well done! ( master sha# foo ; pull sha# bar )')
+    comment_id = 23
+    comment.should_receive(:id).and_return(comment_id)
+    @github.should_receive(:delete_comment).with(@project, comment_id)
+    @pullermann.should_receive(:rerun_on_source_change).once
+    @pullermann.should_not_receive(:rerun_on_target_change).once
+    @pullermann.should_not_receive(:switch_branch_to_merged_state)
+    @pullermann.should_not_receive(:switch_branch_back)
+    @pullermann.should_not_receive(:comment_on_github)
+    @pullermann.run
+  end
+
   it 'populates configuration variables with default values' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([])
     @pullermann.run
