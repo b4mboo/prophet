@@ -208,6 +208,8 @@ class Pullermann
       @log.info "Adding new #{notion(@test_success)} comment."
       call_github(@test_success).add_comment(@project, @request_id, message)
     end
+    # Once we're done, reset @comment to ensure it's not carried over to the next iteration.
+    @comment = nil
   end
 
   def notion(success)
