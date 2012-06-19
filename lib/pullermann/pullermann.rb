@@ -123,6 +123,7 @@ class Pullermann
     comments = comments.select{ |c| [username, username_fail].include?(c.user.login) }.reverse
     # Initialize shas to ensure it will live on after the 'each' block.
     shas = nil
+    @comment = nil
     comments.each do |comment|
       shas = /master sha# ([\w]+) ; pull sha# ([\w]+)/.match(comment.body)
       if shas && shas[1] && shas[2]
@@ -208,8 +209,6 @@ class Pullermann
       @log.info "Adding new #{notion(@test_success)} comment."
       call_github(@test_success).add_comment(@project, @request_id, message)
     end
-    # Once we're done, reset @comment to ensure it's not carried over to the next iteration.
-    @comment = nil
   end
 
   def notion(success)
