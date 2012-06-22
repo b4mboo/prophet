@@ -113,7 +113,7 @@ describe Pullermann do
     @pullermann.should_receive(:test_run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
-    @pullermann.instance_variable_set(:@test_success, true)
+    @pullermann.success = true
     comment = mock 'comment'
     @pullermann.instance_variable_set(:@comment, comment)
     comment.should_receive(:[])

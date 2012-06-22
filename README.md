@@ -49,7 +49,7 @@ Inside that file you can set your options like this:
 
       # Finally, specify which tests to run. (Defaults to `rake test`.)
       # NOTE: Either ensure the last call in that block runs your tests
-      # or manually set @result to a boolean inside this block.
+      # or manually set config.success to a boolean inside this block.
       config.test_execution do
         `echo 'Running tests ...'`
         `rake test:all`

@@ -8,7 +8,8 @@ class Pullermann
                 :rerun_on_target_change,
                 :prepare_block,
                 :test_block,
-                :logger
+                :logger,
+                :success
 
   # Allow configuration blocks being passed to Pullermann.
   def self.setup
@@ -42,11 +43,11 @@ class Pullermann
       self.prepare_block.call
       # Run specified tests for the project.
       # NOTE: Either ensure the last call in that block runs your tests
-      # or manually set @result to a boolean inside this block.
+      # or manually set self.success to a boolean inside this block.
       self.test_block.call
       # Unless already set, the success/failure is determined by the last
       # command's return code.
-      @test_success ||= $? == 0
+      self.success ||= $? == 0
       # We need to switch back to the original branch in case we need to test
       # more pull requests.
       switch_branch_back
@@ -194,7 +195,7 @@ class Pullermann
   # Output the result to a comment on the pull request on GitHub.
   def comment_on_github
     # Determine comment message.
-    message = if @test_success
+    message = if self.success
       @log.info 'Tests are passing.'
       'Well done! All tests are still passing after merging this pull request.'
     else
@@ -202,17 +203,17 @@ class Pullermann
       'Unfortunately your tests are failing after merging this pull request.'
     end
     message += "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
-    if old_comment_success? == @test_success
+    if old_comment_success? == self.success
       # Replace existing @comment's body with the correct connection.
-      @log.info "Updating existing #{notion(@test_success)} comment."
-      call_github(@test_success).update_comment(@project, @comment['id'], message)
+      @log.info "Updating existing #{notion(self.success)} comment."
+      call_github(self.success).update_comment(@project, @comment['id'], message)
     else
-      @log.info "Deleting existing #{notion(!@test_success)} comment."
+      @log.info "Deleting existing #{notion(!self.success)} comment."
       # Delete old @comment with correct connection (if @comment exists).
-      call_github(!@test_success).delete_comment(@project, @comment['id']) if @comment
+      call_github(!self.success).delete_comment(@project, @comment['id']) if @comment
       # Create new comment with correct connection.
-      @log.info "Adding new #{notion(@test_success)} comment."
-      call_github(@test_success).add_comment(@project, @request_id, message)
+      @log.info "Adding new #{notion(self.success)} comment."
+      call_github(self.success).add_comment(@project, @request_id, message)
     end
   end
 
