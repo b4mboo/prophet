@@ -1,9 +1,9 @@
 Pullermann
 ==========
 
-Loops through open pull requests on a GitHub repository and runs your tests on
-the merged code. After the test run has finished, Pullermann will post a comment
-to the pull request stating whether the tests have all passed or failed.
+Loops through open pull requests on a GitHub hosted repository and runs your code
+(i.e. tests) on the merged branch. After the run has finished, Pullermann will
+post a comment to the pull request stating whether the execution succeeded or failed.
 
 Installation is quite easy. If you are using bundler (i.e. for a Rails project),
 just add the following to your Gemfile:
@@ -23,36 +23,35 @@ Inside that file you can set your options like this:
       config.password = 'bar'
 
       # The GH credentials for commenting on failing runs (can be the same as above).
-      # NOTE: If you specify two different accounts with different avatars, it's
-      # a lot easier to spot failing test runs at first glance.
+      # NOTE: If you specify two different accounts with different avatars,
+      # it's a lot easier to spot failing runs at first glance.
       config.username_fail = 'foo-fail'
       config.password_fail = 'baz'
 
-      # Specify when to run tests.
-      # By default your tests will run everytime either the pull request or its
+      # Specify when to run your code.
+      # By default your code will run every time either the pull request or its
       # target (i.e. master) changes.
       config.rerun_on_source_change = true
       config.rerun_on_target_change = true
 
-      # If you need to make some system calls before running your actual tests,
+      # If you need to make some system calls before looping through the pull requests,
       # you specify them here. (Defaults to an empty block.)
-      config.test_preparation do
-        # Setup project with latest code.
-        `bundle install`
-        `rake db:create`
-        `rake db:migrate`
-
-        # Setup jenkins.
+      # This block will only be executed once before switching to the merged state.
+      config.preparation do
+        # Example: Setup jenkins.
         `rake -f /usr/lib/ruby/gems/1.9.1/gems/ci_reporter-1.7.0/stub.rake`
         `rake ci:setup:testunit`
       end
 
-      # Finally, specify which tests to run. (Defaults to `rake test`.)
-      # NOTE: Either ensure the last call in that block runs your tests
-      # or manually set config.success to a boolean inside this block.
+      # Finally, specify which code to run. (Defaults to `rake`.)
+      # NOTE: If you don't set config.success manually to a boolean inside this block,
+      # Pullermann will try to determine it by looking at whether the last system call
+      # returned 0 (= success).
       config.test_execution do
-        `echo 'Running tests ...'`
+        puts 'Running tests ...'
         `rake test:all`
+        config.success = $? == 0
+        puts "Tests are #{self.success ? 'passing' : 'failing'}."
       end
 
     end

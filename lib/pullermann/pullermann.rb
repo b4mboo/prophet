@@ -7,7 +7,7 @@ class Pullermann
                 :rerun_on_source_change,
                 :rerun_on_target_change,
                 :prepare_block,
-                :test_block,
+                :exec_block,
                 :logger,
                 :success
 
@@ -16,15 +16,15 @@ class Pullermann
     yield main_instance
   end
 
-  def test_preparation(&block)
+  def preparation(&block)
     self.prepare_block = block
   end
 
-  def test_execution(&block)
-    self.test_block = block
+  def execution(&block)
+    self.exec_block = block
   end
 
-  # The main Pullermann task. Call this to start testing.
+  # The main Pullermann task. Call this to run your code.
   def self.run
     main_instance.run
   end
@@ -32,6 +32,8 @@ class Pullermann
   def run
     # Populate variables and setup environment.
     configure
+    # Prepare project (e.g. Jenkins CI) for the run.
+    self.prepare_block.call
     # Loop through all 'open' pull requests.
     pull_requests.each do |request|
       @request_id = request['number']
@@ -39,12 +41,10 @@ class Pullermann
       next unless test_run_necessary?
       # GitHub always creates a merge commit for its 'Merge Button'.
       switch_branch_to_merged_state
-      # Prepare project and CI (e.g. Jenkins) for the test run.
-      self.prepare_block.call
-      # Run specified tests for the project.
-      # NOTE: Either ensure the last call in that block runs your tests
+      # Run specified code (i.e. tests) for the project.
+      # NOTE: Either ensure the last call in that block runs your critical code
       # or manually set self.success to a boolean inside this block.
-      self.test_block.call
+      self.exec_block.call
       # Unless already set, the success/failure is determined by the last
       # command's return code.
       self.success ||= $? == 0
@@ -79,8 +79,8 @@ class Pullermann
     self.rerun_on_source_change = true unless self.rerun_on_source_change == false
     self.rerun_on_target_change = true unless self.rerun_on_target_change == false
     # Find environment (tasks, project, ...).
-    @prepare_block ||= lambda {}
-    @test_block ||= lambda { `rake test` }
+    self.prepare_block ||= lambda {}
+    self.exec_block ||= lambda { `rake` }
     @github = connect_to_github
     @github_fail = if self.username == self.username_fail
       @github

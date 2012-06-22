@@ -11,7 +11,7 @@ describe Pullermann do
     @request_id = 42
     @project = 'user/project'
     @pullermann.prepare_block= lambda { }
-    @pullermann.test_block = lambda { }
+    @pullermann.exec_block = lambda { }
     # Stub external dependency @gitconfig (local file).
     @pullermann.stub(:git_config).and_return(
       'github.login' => 'default_login',
@@ -190,20 +190,20 @@ describe Pullermann do
     @pullermann.rerun_on_target_change.should == false
   end
 
-  it 'allows custom commands for test preparation' do
+  it 'allows custom commands for preparation' do
     config_block = lambda do |config|
-      config.test_preparation { raise 'test preparation' }
+      config.preparation { raise 'preparation' }
     end
     config_block.call @pullermann
-    lambda { @pullermann.prepare_block.call }.should raise_error 'test preparation'
+    lambda { @pullermann.prepare_block.call }.should raise_error 'preparation'
   end
 
-  it 'allows custom commands for test execution' do
+  it 'allows custom commands for execution' do
     config_block = lambda do |config|
-      config.test_preparation { raise 'test execution' }
+      config.execution { raise 'execution' }
     end
     config_block.call @pullermann
-    lambda { @pullermann.prepare_block.call }.should raise_error 'test execution'
+    lambda { @pullermann.exec_block.call }.should raise_error 'execution'
   end
 
 end
