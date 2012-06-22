@@ -34,7 +34,7 @@ describe Pullermann do
     @pullermann.run
   end
 
-  it 'checks existing comments to determine whether a test run is necessary' do
+  it 'checks existing comments to determine whether a new run is necessary' do
     pull_request = mock 'pull request'
     pull_request.should_receive(:title).and_return('mock request')
     pull_request.should_receive(:mergeable).and_return(true)
@@ -51,9 +51,9 @@ describe Pullermann do
     @pullermann.run
   end
 
-  it 'runs the tests on the merged code' do
+  it 'runs your code on the merged branch' do
     @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
-    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.stub(:abort)
     @pullermann.should_receive(:'`').with("git fetch origin refs/pull/#{@request_id}/merge: &> /dev/null")
     @pullermann.should_receive(:'`').with('git checkout FETCH_HEAD &> /dev/null')
@@ -62,7 +62,7 @@ describe Pullermann do
     @pullermann.run
   end
 
-  it 'runs the tests when either source or target branch have changed' do
+  it 'runs your code when either source or target branch have changed' do
     @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
     pull_request = mock 'pull request'
     @github.should_receive(:pull_request).with(@project, @request_id).and_return(pull_request)
@@ -85,7 +85,7 @@ describe Pullermann do
 
   it 'posts comments to GitHub' do
     @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
-    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @github.should_receive(:add_comment)
@@ -99,7 +99,7 @@ describe Pullermann do
     end
     config_block.call @pullermann
     @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
-    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @pullermann.instance_variable_set(:@test_success, false)
@@ -110,7 +110,7 @@ describe Pullermann do
 
   it 'updates existing comments to reduce noise' do
     @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
-    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @pullermann.success = true
@@ -124,7 +124,7 @@ describe Pullermann do
 
   it 'deletes obsolete comments whenever the result changes' do
     @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
-    @pullermann.should_receive(:test_run_necessary?).and_return(true)
+    @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @pullermann.instance_variable_set(:@test_success, false)

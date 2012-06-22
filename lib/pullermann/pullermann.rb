@@ -12,6 +12,7 @@ class Pullermann
                 :success
 
   # Allow configuration blocks being passed to Pullermann.
+  # See the README.md for examples on how to call this method.
   def self.setup
     yield main_instance
   end
@@ -32,24 +33,20 @@ class Pullermann
   def run
     # Populate variables and setup environment.
     configure
-    # Prepare project (e.g. Jenkins CI) for the run.
     self.prepare_block.call
     # Loop through all 'open' pull requests.
     pull_requests.each do |request|
       @request_id = request['number']
       # Jump to next iteration if source and/or target haven't change since last run.
-      next unless test_run_necessary?
+      next unless run_necessary?
       # GitHub always creates a merge commit for its 'Merge Button'.
+      # Pullermann reuses that commit to run the code on it.
       switch_branch_to_merged_state
       # Run specified code (i.e. tests) for the project.
-      # NOTE: Either ensure the last call in that block runs your critical code
-      # or manually set self.success to a boolean inside this block.
       self.exec_block.call
-      # Unless already set, the success/failure is determined by the last
-      # command's return code.
+      # Unless self.success has already been set manually,
+      # the success/failure is determined by the last command's return code.
       self.success ||= $? == 0
-      # We need to switch back to the original branch in case we need to test
-      # more pull requests.
       switch_branch_back
       comment_on_github
     end
@@ -115,11 +112,11 @@ class Pullermann
     pulls
   end
 
-  # Test runs are necessary if:
-  # - the pull request hasn't been tested before.
+  # (Re-)runs are necessary if:
+  # - the pull request hasn't been used for a run before.
   # - the pull request has been updated since the last run.
   # - the target (i.e. master) has been updated since the last run.
-  def test_run_necessary?
+  def run_necessary?
     pull_request = @github.pull_request @project, @request_id
     @log.info "Checking pull request ##{@request_id}: #{pull_request.title}"
     # Compare current sha ids of target and source branch with those from the last test run.
@@ -140,7 +137,7 @@ class Pullermann
     end
     # If it's not mergeable, we need to delete all comments of former test runs.
     unless pull_request.mergeable
-      @log.info 'Pull request not auto-mergeable. Not running tests.'
+      @log.info 'Pull request not auto-mergeable. Not running.'
       if @comment
         @log.info 'Deleting existing comment.'
         call_github(old_comment_success?).delete_comment(@project, @comment.id)
@@ -151,18 +148,18 @@ class Pullermann
       @log.info "Current target sha: '#{@target_head_sha}', pull sha: '#{@pull_head_sha}'."
       @log.info "Last test run target sha: '#{shas[1]}', pull sha: '#{shas[2]}'."
       if self.rerun_on_source_change && (shas[2] != @pull_head_sha)
-        @log.info 'Re-running test due to new commit in pull request.'
+        @log.info 'Re-running due to new commit in pull request.'
         return true
       elsif self.rerun_on_target_change && (shas[1] != @target_head_sha)
-        @log.info 'Re-running test due to new commit in target branch.'
+        @log.info 'Re-running due to new commit in target branch.'
         return true
       end
     else
       # If there are no comments yet, it has to be a new request.
-      @log.info 'New pull request detected, test run needed.'
+      @log.info 'New pull request detected, run needed.'
       return true
     end
-    @log.info "Not running tests for request ##{@request_id}."
+    @log.info "Not running for request ##{@request_id}."
     false
   end
 
@@ -185,22 +182,21 @@ class Pullermann
     `git checkout master &> /dev/null`
   end
 
-  # Analyze old comment to see whether it was a successful or a failing one.
   def old_comment_success?
     return unless @comment
-    # Determine boolean value.
+    # Analyze old comment to see whether it was a successful or a failing one.
     @comment.body.include? 'Well done!'
   end
 
-  # Output the result to a comment on the pull request on GitHub.
   def comment_on_github
     # Determine comment message.
+    # TODO: Allow for custom messages.
     message = if self.success
-      @log.info 'Tests are passing.'
-      'Well done! All tests are still passing after merging this pull request.'
+      @log.info 'Successful run.'
+      'Well done! Your code is still running successfully after merging this pull request.'
     else
-      @log.info 'Tests are failing.'
-      'Unfortunately your tests are failing after merging this pull request.'
+      @log.info 'Failing run.'
+      'Unfortunately your code is failing after merging this pull request.'
     end
     message += "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
     if old_comment_success? == self.success
@@ -230,7 +226,6 @@ class Pullermann
   # Checks '~/.gitconfig' for credentials.
   def git_config
     unless @git_config
-      # Read @git_config from local git config.
       @git_config = {}
       `git config --list`.split("\n").each do |line|
         key, value = line.split('=')
