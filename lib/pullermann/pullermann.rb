@@ -8,7 +8,7 @@ class Pullermann
                 :rerun_on_target_change,
                 :prepare_block,
                 :test_block,
-                :log_level
+                :logger
 
   # Allow configuration blocks being passed to Pullermann.
   def self.setup
@@ -63,8 +63,13 @@ class Pullermann
   end
 
   def configure
-    @log = Logger.new(STDOUT)
-    @log.level = self.log_level || Logger::INFO
+    # Use existing logger or fall back to a new one with standard log level.
+    if self.logger
+      @log = self.logger
+    else
+      @log = Logger.new(STDOUT)
+      @log.level = Logger::INFO
+    end
     # Set default fall back values for options that aren't set.
     self.username ||= git_config['github.login']
     self.password ||= git_config['github.password']

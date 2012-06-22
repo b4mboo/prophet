@@ -5,7 +5,8 @@ describe Pullermann do
 
   before :each do
     @pullermann = Pullermann.new
-    @pullermann.log_level = Logger::FATAL
+    @pullermann.logger = Logger.new(STDOUT)
+    @pullermann.logger.level = Logger::FATAL
     # Variables to use inside the tests.
     @request_id = 42
     @project = 'user/project'
@@ -56,7 +57,7 @@ describe Pullermann do
     @pullermann.stub(:abort)
     @pullermann.should_receive(:'`').with("git fetch origin refs/pull/#{@request_id}/merge: &> /dev/null")
     @pullermann.should_receive(:'`').with('git checkout FETCH_HEAD &> /dev/null')
-    @pullermann.should_receive(:'`').with('git co master &> /dev/null')
+    @pullermann.should_receive(:'`').with('git checkout master &> /dev/null')
     @pullermann.stub(:comment_on_github)
     @pullermann.run
   end
