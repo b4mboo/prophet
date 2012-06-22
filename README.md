@@ -18,6 +18,10 @@ Inside that file you can set your options like this:
 
     Pullermann.setup do |config|
 
+      # Setup custom logger.
+      config.logger = log = Logger.new(STDOUT)
+      log.level = Logger::INFO
+
       # The GitHub (GH) username/password to use for commenting on a successful run.
       config.username = 'foo-success'
       config.password = 'bar'
@@ -48,10 +52,10 @@ Inside that file you can set your options like this:
       # Pullermann will try to determine it by looking at whether the last system call
       # returned 0 (= success).
       config.test_execution do
-        puts 'Running tests ...'
+        log 'Running tests ...'
         `rake test:all`
         config.success = $? == 0
-        puts "Tests are #{self.success ? 'passing' : 'failing'}."
+        log "Tests are #{self.success ? 'passing' : 'failing'}."
       end
 
     end
