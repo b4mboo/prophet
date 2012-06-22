@@ -176,7 +176,7 @@ class Pullermann
     # FIXME: Use cheetah to pipe to @log.debug instead of that /dev/null hack.
     @log.info 'Switching back to original branch.'
     # FIXME: For branches other than master, remember the original branch.
-    `git co master &> /dev/null`
+    `git checkout master &> /dev/null`
   end
 
   # Analyze old comment to see whether it was a successful or a failing one.
