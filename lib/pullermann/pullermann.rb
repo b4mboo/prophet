@@ -204,9 +204,11 @@ class Pullermann
       @log.info "Updating existing #{notion(self.success)} comment."
       call_github(self.success).update_comment(@project, @comment['id'], message)
     else
-      @log.info "Deleting existing #{notion(!self.success)} comment."
-      # Delete old @comment with correct connection (if @comment exists).
-      call_github(!self.success).delete_comment(@project, @comment['id']) if @comment
+      if @comment
+        @log.info "Deleting existing #{notion(!self.success)} comment."
+        # Delete old @comment with correct connection (if @comment exists).
+        call_github(!self.success).delete_comment(@project, @comment['id'])
+      end
       # Create new comment with correct connection.
       @log.info "Adding new #{notion(self.success)} comment."
       call_github(self.success).add_comment(@project, @request_id, message)
