@@ -46,7 +46,7 @@ class Pullermann
       self.exec_block.call
       # Unless self.success has already been set manually,
       # the success/failure is determined by the last command's return code.
-      self.success ||= $? == 0
+      self.success ||= ($? == 0)
       switch_branch_back
       comment_on_github
     end
