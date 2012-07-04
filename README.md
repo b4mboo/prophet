@@ -54,7 +54,7 @@ Inside that file you can set your options like this:
       config.execution do
         log 'Running tests ...'
         `rake test:all`
-        config.success = $? == 0
+        config.success = ($? == 0)
         log "Tests are #{self.success ? 'passing' : 'failing'}."
       end
 
