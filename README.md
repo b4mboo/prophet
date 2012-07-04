@@ -51,7 +51,7 @@ Inside that file you can set your options like this:
       # NOTE: If you don't set config.success manually to a boolean inside this block,
       # Pullermann will try to determine it by looking at whether the last system call
       # returned 0 (= success).
-      config.test_execution do
+      config.execution do
         log 'Running tests ...'
         `rake test:all`
         config.success = $? == 0
