@@ -103,6 +103,13 @@ Thanks
 ------
 
 A big "Thank you" goes out to Konstantin Haase (rkh / @konstantinhaase) who
-told us about that idea at Railsberry 2012 in Krakow.
+told us about this idea at Railsberry 2012 in Krakow.
 
     http://www.youtube.com/watch?v=YFzloW8F-nE
+
+Pullermann therefore only mimics one of TravisCI's features (to a certain 
+degree at least). If you want the full experience, go to
+
+    http://travis-ci.org
+
+and sign in, using your GitHub account.
