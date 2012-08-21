@@ -113,3 +113,8 @@ degree at least). If you want the full experience, go to
     http://travis-ci.org
 
 and sign in, using your GitHub account.
+
+Pullermann is on getting tested with Travis, too.
+
+    http://travis-ci.org/#!/b4mboo/pullermann
+
