@@ -102,7 +102,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
-    @pullermann.instance_variable_set(:@test_success, false)
+    @pullermann.instance_variable_set(:@success, false)
     @pullermann.should_receive(:connect_to_github).exactly(2).times.and_return(@github)
     @github.should_receive(:add_comment)
     @pullermann.run
@@ -127,7 +127,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
-    @pullermann.instance_variable_set(:@test_success, false)
+    @pullermann.instance_variable_set(:@success, false)
     comment = mock 'comment'
     @pullermann.instance_variable_set(:@comment, comment)
     comment.should_receive(:[])
