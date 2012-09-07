@@ -217,6 +217,7 @@ class Pullermann
   end
 
   def set_status_on_github
+    @log.info 'Updating status on GitHub.'
     if self.success
       state_symbol = :success
       state_word = 'passing'
