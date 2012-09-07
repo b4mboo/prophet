@@ -106,7 +106,7 @@ describe Pullermann do
     @github.should_receive(:post).with(
       "repos/#{@project}/statuses/#{@pull_sha}", {
         :state => :success,
-        :description => "Tests are passing after merging #{@pull_sha} into #{@target_sha}."
+        :description => "Tests are passing after merging this pull request."
       }
     )
     @pullermann.run
@@ -122,7 +122,7 @@ describe Pullermann do
     @github.should_receive(:post).with(
       "repos/#{@project}/statuses/#{@pull_sha}", {
         :state => :failure,
-        :description => "Tests are failing after merging #{@pull_sha} into #{@target_sha}."
+        :description => "Tests are failing after merging this pull request."
       }
     )
     @pullermann.run

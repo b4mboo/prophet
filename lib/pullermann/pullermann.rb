@@ -228,7 +228,7 @@ class Pullermann
     @github.post(
       "repos/#{@project}/statuses/#{@pull_head_sha}", {
         :state => state_symbol,
-        :description => "Tests are #{state_word} after merging #{@pull_head_sha} into #{@target_head_sha}."
+        :description => "Tests are #{state_word} after merging this pull request."
       }
     )
   end
