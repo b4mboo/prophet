@@ -48,6 +48,7 @@ describe Pullermann do
     @pullermann.stub(:switch_branch_to_merged_state)
     @pullermann.stub(:switch_branch_back)
     @pullermann.stub(:comment_on_github)
+    @pullermann.stub(:set_status_on_github)
     @pullermann.run
   end
 
@@ -59,6 +60,7 @@ describe Pullermann do
     @pullermann.should_receive(:'`').with('git checkout FETCH_HEAD &> /dev/null')
     @pullermann.should_receive(:'`').with('git checkout master &> /dev/null')
     @pullermann.stub(:comment_on_github)
+    @pullermann.stub(:set_status_on_github)
     @pullermann.run
   end
 
@@ -80,6 +82,49 @@ describe Pullermann do
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @pullermann.should_receive(:comment_on_github)
+    @pullermann.should_receive(:set_status_on_github)
+    @pullermann.run
+  end
+
+  it 'sets the pull request\'s status on GitHub' do
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:comment_on_github)
+    @pullermann.should_receive(:set_status_on_github)
+    @pullermann.run
+  end
+
+  it 'sets the status to :success if tests pass' do
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:comment_on_github)
+    @pullermann.stub(:success).and_return(true)
+    @github.should_receive(:post).with(
+      "repos/#{@project}/statuses/#{@pull_sha}", {
+        :state => :success,
+        :description => "Tests are passing after merging #{@pull_sha} into #{@target_sha}."
+      }
+    )
+    @pullermann.run
+  end
+
+  it 'sets the status to :failure if tests fail' do
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:comment_on_github)
+    @pullermann.stub(:success).and_return(false)
+    @github.should_receive(:post).with(
+      "repos/#{@project}/statuses/#{@pull_sha}", {
+        :state => :failure,
+        :description => "Tests are failing after merging #{@pull_sha} into #{@target_sha}."
+      }
+    )
     @pullermann.run
   end
 
@@ -88,6 +133,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:set_status_on_github)
     @github.should_receive(:add_comment)
     @pullermann.run
   end
@@ -102,6 +148,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:set_status_on_github)
     @pullermann.stub(:success).and_return(false)
     @pullermann.should_receive(:connect_to_github).exactly(2).times.and_return(@github)
     @github.should_receive(:add_comment)
@@ -113,6 +160,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:set_status_on_github)
     @pullermann.success = true
     comment = mock 'comment'
     @pullermann.instance_variable_set(:@comment, comment)
@@ -127,6 +175,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:set_status_on_github)
     @pullermann.stub(:success).and_return(false)
     comment = mock 'comment'
     @pullermann.instance_variable_set(:@comment, comment)
@@ -158,6 +207,7 @@ describe Pullermann do
     @pullermann.should_not_receive(:switch_branch_to_merged_state)
     @pullermann.should_not_receive(:switch_branch_back)
     @pullermann.should_not_receive(:comment_on_github)
+    @pullermann.should_not_receive(:set_status_on_github)
     @pullermann.run
   end
 
@@ -168,8 +218,8 @@ describe Pullermann do
     @pullermann.password.should == 'default_password'
     @pullermann.username_fail.should == 'default_login'
     @pullermann.password_fail.should == 'default_password'
-    @pullermann.rerun_on_source_change.should == true
-    @pullermann.rerun_on_target_change.should == true
+    @pullermann.rerun_on_source_change.should be_true
+    @pullermann.rerun_on_target_change.should be_true
   end
 
   it 'respects configuration values if set manually' do
@@ -186,8 +236,8 @@ describe Pullermann do
     @pullermann.password.should == 'password'
     @pullermann.username_fail.should == 'username_fail'
     @pullermann.password_fail.should == 'password_fail'
-    @pullermann.rerun_on_source_change.should == false
-    @pullermann.rerun_on_target_change.should == false
+    @pullermann.rerun_on_source_change.should be_false
+    @pullermann.rerun_on_target_change.should be_false
   end
 
   it 'allows custom commands for preparation' do

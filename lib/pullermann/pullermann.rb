@@ -49,6 +49,7 @@ class Pullermann
       self.success ||= ($? == 0)
       switch_branch_back
       comment_on_github
+      set_status_on_github
     end
   end
 
@@ -213,6 +214,22 @@ class Pullermann
       @log.info "Adding new #{notion(self.success)} comment."
       call_github(self.success).add_comment(@project, @request_id, message)
     end
+  end
+
+  def set_status_on_github
+    if self.success
+      state_symbol = :success
+      state_word = 'passing'
+    else
+      state_symbol = :failure
+      state_word = 'failing'
+    end
+    @github.post(
+      "repos/#{@project}/statuses/#{@pull_head_sha}", {
+        :state => state_symbol,
+        :description => "Tests are #{state_word} after merging #{@pull_head_sha} into #{@target_head_sha}."
+      }
+    )
   end
 
   def notion(success)
