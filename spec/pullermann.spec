@@ -82,7 +82,7 @@ describe Pullermann do
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @pullermann.should_receive(:comment_on_github)
-    @pullermann.should_receive(:set_status_on_github)
+    @pullermann.should_receive(:set_status_on_github).twice
     @pullermann.run
   end
 
@@ -92,11 +92,32 @@ describe Pullermann do
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @pullermann.should_receive(:comment_on_github)
-    @pullermann.should_receive(:set_status_on_github)
+    @pullermann.should_receive(:set_status_on_github).twice
     @pullermann.run
   end
 
-  it 'sets the status to :success if tests pass' do
+  it 'sets the status to :pending while execution is running' do
+    @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @github.should_receive(:post).with(
+      "repos/#{@project}/statuses/#{@pull_sha}", {
+        :state => :pending,
+        :description => "Tests are still running for this pull request."
+      }
+    )
+    @github.should_receive(:post).with(
+      "repos/#{@project}/statuses/#{@pull_sha}", {
+        :state => :failure,
+        :description => "Tests are failing after merging this pull request."
+      }
+    )
+    @pullermann.should_receive(:switch_branch_to_merged_state)
+    @pullermann.should_receive(:switch_branch_back)
+    @pullermann.should_receive(:comment_on_github)
+    @pullermann.run
+  end
+
+  it 'sets the status to :success if execution is successful' do
     @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
@@ -108,11 +129,11 @@ describe Pullermann do
         :state => :success,
         :description => "Tests are passing after merging this pull request."
       }
-    )
+    ).twice
     @pullermann.run
   end
 
-  it 'sets the status to :failure if tests fail' do
+  it 'sets the status to :failure if execution is not successful' do
     @pullermann.should_receive(:pull_requests).and_return([{'number' => @request_id}])
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
@@ -124,7 +145,7 @@ describe Pullermann do
         :state => :failure,
         :description => "Tests are failing after merging this pull request."
       }
-    )
+    ).twice
     @pullermann.run
   end
 
@@ -133,7 +154,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
-    @pullermann.should_receive(:set_status_on_github)
+    @pullermann.should_receive(:set_status_on_github).twice
     @github.should_receive(:add_comment)
     @pullermann.run
   end
@@ -148,7 +169,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
-    @pullermann.should_receive(:set_status_on_github)
+    @pullermann.should_receive(:set_status_on_github).twice
     @pullermann.stub(:success).and_return(false)
     @pullermann.should_receive(:connect_to_github).exactly(2).times.and_return(@github)
     @github.should_receive(:add_comment)
@@ -160,7 +181,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
-    @pullermann.should_receive(:set_status_on_github)
+    @pullermann.should_receive(:set_status_on_github).twice
     @pullermann.success = true
     comment = mock 'comment'
     @pullermann.instance_variable_set(:@comment, comment)
@@ -175,7 +196,7 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
-    @pullermann.should_receive(:set_status_on_github)
+    @pullermann.should_receive(:set_status_on_github).twice
     @pullermann.stub(:success).and_return(false)
     comment = mock 'comment'
     @pullermann.instance_variable_set(:@comment, comment)

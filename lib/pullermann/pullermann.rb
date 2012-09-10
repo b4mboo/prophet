@@ -39,6 +39,7 @@ class Pullermann
       @request_id = request['number']
       # Jump to next iteration if source and/or target haven't change since last run.
       next unless run_necessary?
+      set_status_on_github
       # GitHub always creates a merge commit for its 'Merge Button'.
       # Pullermann reuses that commit to run the code on it.
       switch_branch_to_merged_state
@@ -218,17 +219,21 @@ class Pullermann
 
   def set_status_on_github
     @log.info 'Updating status on GitHub.'
-    if self.success
+    case self.success
+    when true
       state_symbol = :success
-      state_word = 'passing'
-    else
+      state_message = 'passing after merging'
+    when false
       state_symbol = :failure
-      state_word = 'failing'
+      state_message = 'failing after merging'
+    else
+      state_symbol = :pending
+      state_message = 'still running for'
     end
     @github.post(
       "repos/#{@project}/statuses/#{@pull_head_sha}", {
         :state => state_symbol,
-        :description => "Tests are #{state_word} after merging this pull request."
+        :description => "Tests are #{state_message} this pull request."
       }
     )
   end
