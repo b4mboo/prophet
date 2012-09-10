@@ -105,12 +105,7 @@ describe Pullermann do
         :description => "Tests are still running for this pull request."
       }
     )
-    @github.should_receive(:post).with(
-      "repos/#{@project}/statuses/#{@pull_sha}", {
-        :state => :failure,
-        :description => "Tests are failing after merging this pull request."
-      }
-    )
+    @github.should_receive(:post)
     @pullermann.should_receive(:switch_branch_to_merged_state)
     @pullermann.should_receive(:switch_branch_back)
     @pullermann.should_receive(:comment_on_github)
