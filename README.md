@@ -1,8 +1,6 @@
 Pullermann
 ==========
 
-![https://secure.travis-ci.org/b4mboo/pullermann.png](http://travis.ci.org/b4mboo/pullermann)
-
 Loops through open pull requests on a GitHub hosted repository and runs your code
 (i.e. tests) on the merged branch. After the run has finished, Pullermann will
 post a comment to the pull request stating whether the execution succeeded or failed.
