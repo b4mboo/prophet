@@ -6,6 +6,10 @@ Loops through open pull requests on a GitHub hosted repository and runs your cod
 (i.e. tests) on the merged branch. After the run has finished, Pullermann will
 post a comment to the pull request stating whether the execution succeeded or failed.
 
+Ever since GitHub released their awesome commit status API, Pullermann also makes use 
+of that and sets statuses according to the execution of your code to 'pending', 
+'failure' or 'success'.
+
 Installation is quite easy. If you are using bundler (i.e. for a Rails project),
 just add the following to your Gemfile:
 
@@ -108,14 +112,14 @@ told us about this idea at Railsberry 2012 in Krakow.
 
     http://www.youtube.com/watch?v=YFzloW8F-nE
 
-Pullermann therefore only mimics one of TravisCI's features (to a certain 
+If you ar using Pullermann to run your tests, it therefore only mimics one of TravisCI's features (to a certain 
 degree at least). If you want the full experience, go to
 
     http://travis-ci.org
 
 and sign in, using your GitHub account.
 
-Pullermann is on getting tested with Travis, too.
+Pullermann is getting tested with Travis, too.
 
     http://travis-ci.org/#!/b4mboo/pullermann
 
