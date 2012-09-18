@@ -1,5 +1,6 @@
 Pullermann
 ==========
+[![Build Status](https://secure.travis-ci.org/b4mboo/pullermann.png)](https://secure.travis-ci.org/b4mboo/pullermann)
 
 Loops through open pull requests on a GitHub hosted repository and runs your code
 (i.e. tests) on the merged branch. After the run has finished, Pullermann will
