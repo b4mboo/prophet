@@ -15,9 +15,14 @@ just add the following to your Gemfile:
 
     gem 'pullermann'
 
+Even though you don't really need to configure Pullermann, as it ship with some default 
+values for everything, there is an easy way override all these settings and customize 
+Pullermann to fit your needs perfectly.
+
 To configure Pullermann for your Rails project, create a new initializer:
 
     touch config/initializers/pullermann.rb
+
 
 Inside that file you can set your options like this:
 
