@@ -192,7 +192,7 @@ class Pullermann
   def old_comment_success?
     return unless @request.comment
     # Analyze old comment to see whether it was a successful or a failing one.
-    @request.comment.body.include? 'Well done!'
+    @request.comment.body.include? '( Success: '
   end
 
   def comment_on_github
@@ -200,12 +200,12 @@ class Pullermann
     # TODO: Allow for custom messages.
     message = if self.success
       @log.info 'Successful run.'
-      'Well done! Your code is still running successfully after merging this pull request.'
+      'Pullermann reports success.' + "\n( Success: "
     else
       @log.info 'Failing run.'
-      'Unfortunately your code is failing after merging this pull request.'
+      'Pullermann reports failure.' + "\n( Failure: "
     end
-    message += "\n( Merged #{@request.head_sha} into #{@request.target_head_sha} )"
+    message += "Merged #{@request.head_sha} into #{@request.target_head_sha} )"
     if old_comment_success? == self.success
       # Replace existing comment's body with the correct connection.
       @log.info "Updating existing #{notion(self.success)} comment."
