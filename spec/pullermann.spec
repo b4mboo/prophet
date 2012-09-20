@@ -272,4 +272,19 @@ describe Pullermann do
     lambda { @pullermann.exec_block.call }.should raise_error 'execution'
   end
 
+  it 'resets the success flag after each iteration' do
+    pull_request = mock 'pull request'
+    @pullermann.should_receive(:pull_requests).and_return([pull_request])
+    pull_request.stub! :[]
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.stub! :set_status_on_github
+    @pullermann.stub! :switch_branch_to_merged_state
+    @pullermann.stub_chain(:exec_block, :call)
+    @pullermann.stub! :switch_branch_back
+    @pullermann.stub! :comment_on_github
+    @pullermann.success = true
+    @pullermann.run
+    @pullermann.success.should be_nil
+  end
+
 end

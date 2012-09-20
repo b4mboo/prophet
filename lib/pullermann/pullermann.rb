@@ -51,6 +51,7 @@ class Pullermann
       switch_branch_back
       comment_on_github
       set_status_on_github
+      self.success = nil
     end
   end
 
