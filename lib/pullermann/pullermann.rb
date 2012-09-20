@@ -127,7 +127,9 @@ class Pullermann
 
   def pull_requests
     request_list = @github.pulls @project, 'open'
-    requests = request_list.collect { |request| PullRequest.new(request) }
+    requests = request_list.collect do |request|
+      PullRequest.new(@github.pull_request @project, request.number)
+    end
     @log.info "Found #{requests.size > 0 ? requests.size : 'no'} open pull requests in '#{@project}'."
     requests
   end

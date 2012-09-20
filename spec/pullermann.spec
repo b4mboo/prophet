@@ -32,6 +32,7 @@ describe Pullermann do
 
   it 'loops through all open pull requests' do
     @github.should_receive(:pulls).with(@project, 'open').and_return([@api_response])
+    @github.should_receive(:pull_request).with(@project, @api_response.number).and_return(@api_response)
     PullRequest.should_receive(:new).with(@api_response).and_return(@request)
     @pullermann.stub :run_necessary?
     @pullermann.run
