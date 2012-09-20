@@ -36,7 +36,7 @@ class Pullermann
     self.prepare_block.call
     # Loop through all 'open' pull requests.
     pull_requests.each do |request|
-      @request_id = request['number']
+      @request = request
       # Jump to next iteration if source and/or target haven't change since last run.
       next unless run_necessary?
       set_status_on_github
@@ -110,9 +110,10 @@ class Pullermann
   end
 
   def pull_requests
-    pulls = @github.pulls @project, 'open'
-    @log.info "Found #{pulls.size > 0 ? pulls.size : 'no'} open pull requests in '#{@project}'."
-    pulls
+    request_list = @github.pulls @project, 'open'
+    requests = request_list.collect { |request| PullRequest.new(request) }
+    @log.info "Found #{requests.size > 0 ? requests.size : 'no'} open pull requests in '#{@project}'."
+    requests
   end
 
   # (Re-)runs are necessary if:
@@ -120,40 +121,38 @@ class Pullermann
   # - the pull request has been updated since the last run.
   # - the target (i.e. master) has been updated since the last run.
   def run_necessary?
-    pull_request = @github.pull_request @project, @request_id
-    @log.info "Checking pull request ##{@request_id}: #{pull_request.title}"
+    @log.info "Checking pull request ##{@request.id}: #{@request.content.title}"
     # Compare current sha ids of target and source branch with those from the last test run.
-    @target_head_sha = @github.commits(@project).first.sha
-    @pull_head_sha = pull_request.head.sha
-    comments = @github.issue_comments(@project, @request_id)
-    comments = comments.select{ |c| [username, username_fail].include?(c.user.login) }.reverse
+    @request.target_head_sha = @github.commits(@project).first.sha
+    comments = @github.issue_comments(@project, @request.id)
+    comments = comments.select { |c| [username, username_fail].include?(c.user.login) }.reverse
     # Initialize shas to ensure it will live on after the 'each' block.
     shas = nil
-    @comment = nil
+    @request.comment = nil
     comments.each do |comment|
       shas = /master sha# ([\w]+) ; pull sha# ([\w]+)/.match(comment.body)
       if shas && shas[1] && shas[2]
-        # Remember @comment to be able to update or delete it later.
-        @comment = comment
+        # Remember comment to be able to update or delete it later.
+        @request.comment = comment
         break
       end
     end
     # If it's not mergeable, we need to delete all comments of former test runs.
-    unless pull_request.mergeable
+    unless @request.content.mergeable
       @log.info 'Pull request not auto-mergeable. Not running.'
-      if @comment
+      if @request.comment
         @log.info 'Deleting existing comment.'
-        call_github(old_comment_success?).delete_comment(@project, @comment.id)
+        call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
       end
       return false
     end
-    if @comment
-      @log.info "Current target sha: '#{@target_head_sha}', pull sha: '#{@pull_head_sha}'."
+    if @request.comment
+      @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
       @log.info "Last test run target sha: '#{shas[1]}', pull sha: '#{shas[2]}'."
-      if self.rerun_on_source_change && (shas[2] != @pull_head_sha)
+      if self.rerun_on_source_change && (shas[2] != @request.head_sha)
         @log.info 'Re-running due to new commit in pull request.'
         return true
-      elsif self.rerun_on_target_change && (shas[1] != @target_head_sha)
+      elsif self.rerun_on_target_change && (shas[1] != @request.target_head_sha)
         @log.info 'Re-running due to new commit in target branch.'
         return true
       end
@@ -162,7 +161,7 @@ class Pullermann
       @log.info 'New pull request detected, run needed.'
       return true
     end
-    @log.info "Not running for request ##{@request_id}."
+    @log.info "Not running for request ##{@request.id}."
     false
   end
 
@@ -170,7 +169,7 @@ class Pullermann
     # Fetch the merge-commit for the pull request.
     # NOTE: This commit is automatically created by 'GitHub Merge Button'.
     # FIXME: Use cheetah to pipe to @log.debug instead of that /dev/null hack.
-    `git fetch origin refs/pull/#{@request_id}/merge: &> /dev/null`
+    `git fetch origin refs/pull/#{@request.id}/merge: &> /dev/null`
     `git checkout FETCH_HEAD &> /dev/null`
     unless $? == 0
       @log.error 'Unable to switch to merge branch.'
@@ -186,9 +185,9 @@ class Pullermann
   end
 
   def old_comment_success?
-    return unless @comment
+    return unless @request.comment
     # Analyze old comment to see whether it was a successful or a failing one.
-    @comment.body.include? 'Well done!'
+    @request.comment.body.include? 'Well done!'
   end
 
   def comment_on_github
@@ -201,20 +200,20 @@ class Pullermann
       @log.info 'Failing run.'
       'Unfortunately your code is failing after merging this pull request.'
     end
-    message += "\n( master sha# #{@target_head_sha} ; pull sha# #{@pull_head_sha} )"
+    message += "\n( master sha# #{@request.target_head_sha} ; pull sha# #{@request.head_sha} )"
     if old_comment_success? == self.success
-      # Replace existing @comment's body with the correct connection.
+      # Replace existing comment's body with the correct connection.
       @log.info "Updating existing #{notion(self.success)} comment."
-      call_github(self.success).update_comment(@project, @comment['id'], message)
+      call_github(self.success).update_comment(@project, @request.comment.id, message)
     else
-      if @comment
+      if @request.comment
         @log.info "Deleting existing #{notion(!self.success)} comment."
-        # Delete old @comment with correct connection (if @comment exists).
-        call_github(!self.success).delete_comment(@project, @comment['id'])
+        # Delete old comment with correct connection (if @request.comment exists).
+        call_github(!self.success).delete_comment(@project, @request.comment.id)
       end
       # Create new comment with correct connection.
       @log.info "Adding new #{notion(self.success)} comment."
-      call_github(self.success).add_comment(@project, @request_id, message)
+      call_github(self.success).add_comment(@project, @request.id, message)
     end
   end
 
@@ -232,7 +231,7 @@ class Pullermann
       state_message = 'still running for'
     end
     @github.post(
-      "repos/#{@project}/statuses/#{@pull_head_sha}", {
+      "repos/#{@project}/statuses/#{@request.head_sha}", {
         :state => state_symbol,
         :description => "Tests are #{state_message} this pull request."
       }
