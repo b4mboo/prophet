@@ -9,7 +9,12 @@ class Pullermann
                 :prepare_block,
                 :exec_block,
                 :logger,
-                :success
+                :success,
+                :status_pending,
+                :status_failure,
+                :status_success,
+                :comment_failure,
+                :comment_success
 
   # Allow configuration blocks being passed to Pullermann.
   # See the README.md for examples on how to call this method.
@@ -37,7 +42,7 @@ class Pullermann
     # Loop through all 'open' pull requests.
     selected_requests = pull_requests.select do |request|
       @request = request
-      # Jump to next iteration if source and/or target haven't change since last run.
+      # Jump to next iteration if source and/or target didn't change since last run.
       next unless run_necessary?
       set_status_on_github
       true
@@ -83,6 +88,12 @@ class Pullermann
     self.password_fail ||= self.password
     self.rerun_on_source_change ||= true
     self.rerun_on_target_change ||= true
+    # Allow for custom messages.
+    self.status_pending ||= 'Pullermann is still running.'
+    self.status_failure ||= 'Pullermann reports failure.'
+    self.status_success ||= 'Pullermann reports success.'
+    self.comment_failure ||= 'Pullermann reports failure.'
+    self.comment_success ||= 'Pullermann reports success.'
     # Find environment (tasks, project, ...).
     self.prepare_block ||= lambda {}
     self.exec_block ||= lambda { `rake` }
@@ -197,13 +208,12 @@ class Pullermann
 
   def comment_on_github
     # Determine comment message.
-    # TODO: Allow for custom messages.
     message = if self.success
       @log.info 'Successful run.'
-      'Pullermann reports success.' + "\n( Success: "
+      self.comment_success + "\n( Success: "
     else
       @log.info 'Failing run.'
-      'Pullermann reports failure.' + "\n( Failure: "
+      self.comment_failure + "\n( Failure: "
     end
     message += "Merged #{@request.head_sha} into #{@request.target_head_sha} )"
     if old_comment_success? == self.success
@@ -227,13 +237,13 @@ class Pullermann
     case self.success
     when true
       state_symbol = :success
-      state_message = 'Pullermann reports success.'
+      state_message = self.status_success
     when false
       state_symbol = :failure
-      state_message = 'Pullermann reports failure.'
+      state_message = self.status_failure
     else
       state_symbol = :pending
-      state_message = 'Pullermann is still running.'
+      state_message = self.status_pending
     end
     @github.post(
       "repos/#{@project}/statuses/#{@request.head_sha}", {

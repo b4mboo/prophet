@@ -109,6 +109,23 @@ describe Pullermann do
     @pullermann.run
   end
 
+  it 'allows for custom messages for pending statuses' do
+    @pullermann.status_pending = 'custom pending'
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @github.should_receive(:post).with(
+      "repos/#{@project}/statuses/#{@request.head_sha}", {
+        :state => :pending,
+        :description => 'custom pending'
+      }
+    )
+    @github.should_receive :post
+    @pullermann.should_receive :switch_branch_to_merged_state
+    @pullermann.should_receive :switch_branch_back
+    @pullermann.should_receive :comment_on_github
+    @pullermann.run
+  end
+
   it 'sets the status to :success if execution is successful' do
     @pullermann.should_receive(:pull_requests).and_return([@request])
     @pullermann.should_receive(:run_necessary?).and_return(true)
@@ -125,6 +142,23 @@ describe Pullermann do
     @pullermann.run
   end
 
+  it 'allows for custom messages for successful statuses' do
+    @pullermann.status_success = 'custom success'
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive :switch_branch_to_merged_state
+    @pullermann.should_receive :switch_branch_back
+    @pullermann.should_receive :comment_on_github
+    @pullermann.stub(:success).and_return(true)
+    @github.should_receive(:post).with(
+      "repos/#{@project}/statuses/#{@request.head_sha}", {
+        :state => :success,
+        :description => 'custom success'
+      }
+    ).twice
+    @pullermann.run
+  end
+
   it 'sets the status to :failure if execution is not successful' do
     @pullermann.should_receive(:pull_requests).and_return([@request])
     @pullermann.should_receive(:run_necessary?).and_return(true)
@@ -136,6 +170,23 @@ describe Pullermann do
       "repos/#{@project}/statuses/#{@request.head_sha}", {
         :state => :failure,
         :description => 'Pullermann reports failure.'
+      }
+    ).twice
+    @pullermann.run
+  end
+
+  it 'allows for custom messages for failing statuses' do
+    @pullermann.status_failure = 'custom failure'
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive :switch_branch_to_merged_state
+    @pullermann.should_receive :switch_branch_back
+    @pullermann.should_receive :comment_on_github
+    @pullermann.stub(:success).and_return(false)
+    @github.should_receive(:post).with(
+      "repos/#{@project}/statuses/#{@request.head_sha}", {
+        :state => :failure,
+        :description => 'custom failure'
       }
     ).twice
     @pullermann.run
@@ -163,7 +214,7 @@ describe Pullermann do
     @pullermann.should_receive :switch_branch_back
     @pullermann.should_receive(:set_status_on_github).twice
     @pullermann.stub(:success).and_return(false)
-    @pullermann.should_receive(:connect_to_github).exactly(2).times.and_return(@github)
+    @pullermann.should_receive(:connect_to_github).twice.and_return(@github)
     @github.should_receive :add_comment
     @pullermann.run
   end
@@ -214,6 +265,30 @@ describe Pullermann do
     @pullermann.should_not_receive :switch_branch_back
     @pullermann.should_not_receive :comment_on_github
     @pullermann.should_not_receive :set_status_on_github
+    @pullermann.run
+  end
+
+  it 'allows for custom messages for successful comments' do
+    @pullermann.comment_success = 'custom success'
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive :switch_branch_to_merged_state
+    @pullermann.should_receive :switch_branch_back
+    @pullermann.should_receive(:set_status_on_github).twice
+    @pullermann.stub(:success).and_return(true)
+    @github.should_receive(:add_comment).with(@project, @request_id, include('custom success'))
+    @pullermann.run
+  end
+
+  it 'allows for custom messages for failing comments' do
+    @pullermann.comment_failure = 'custom failure'
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive :switch_branch_to_merged_state
+    @pullermann.should_receive :switch_branch_back
+    @pullermann.should_receive(:set_status_on_github).twice
+    @pullermann.stub(:success).and_return(false)
+    @github.should_receive(:add_comment).with(@project, @request_id, include('custom failure'))
     @pullermann.run
   end
 
