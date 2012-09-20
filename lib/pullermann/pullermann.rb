@@ -38,7 +38,11 @@ class Pullermann
   def run
     # Populate variables and setup environment.
     configure
-    self.prepare_block.call
+    begin
+      self.prepare_block.call
+    rescue Exception => e
+      @log.error "Preparation block raised an exception: #{e}"
+    end
     # Loop through all 'open' pull requests.
     selected_requests = pull_requests.select do |request|
       @request = request
@@ -54,7 +58,12 @@ class Pullermann
       # Pullermann reuses that commit to run the code on it.
       switch_branch_to_merged_state
       # Run specified code (i.e. tests) for the project.
-      self.exec_block.call
+      begin
+        self.exec_block.call
+      rescue Exception => e
+        @log.error "Execution block raised an exception: #{e}"
+        self.success = false
+      end
       # Unless self.success has already been set manually,
       # the success/failure is determined by the last command's return code.
       self.success ||= ($? == 0)

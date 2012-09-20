@@ -330,12 +330,37 @@ describe Pullermann do
     lambda { @pullermann.prepare_block.call }.should raise_error 'preparation'
   end
 
+  it 'catches exceptions thrown in preparation block' do
+    @pullermann.prepare_block = lambda { raise 'foo' }
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive :switch_branch_to_merged_state
+    @pullermann.should_receive :switch_branch_back
+    @pullermann.should_receive(:set_status_on_github).twice
+    @pullermann.stub(:success).and_return(false)
+    @github.should_receive(:add_comment).with(@project, @request_id, include('Failure'))
+    @pullermann.logger.should_receive(:error).with(include('Preparation'))
+    @pullermann.run
+  end
+
   it 'allows custom commands for execution' do
     config_block = lambda do |config|
       config.execution { raise 'execution' }
     end
     config_block.call @pullermann
     lambda { @pullermann.exec_block.call }.should raise_error 'execution'
+  end
+
+  it 'reports failure if your code raises an exception' do
+    @pullermann.exec_block = lambda { raise 'foo' }
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive :switch_branch_to_merged_state
+    @pullermann.should_receive :switch_branch_back
+    @pullermann.should_receive(:set_status_on_github).twice
+    @github.should_receive(:add_comment).with(@project, @request_id, include('Failure'))
+    @pullermann.logger.should_receive(:error).with(include('Execution'))
+    @pullermann.run
   end
 
   it 'resets the success flag after each iteration' do
