@@ -60,13 +60,13 @@ class Pullermann
       # Run specified code (i.e. tests) for the project.
       begin
         self.exec_block.call
+        # Unless self.success has already been set manually,
+        # the success/failure is determined by the last command's return code.
+        self.success ||= ($? == 0)
       rescue Exception => e
         @log.error "Execution block raised an exception: #{e}"
         self.success = false
       end
-      # Unless self.success has already been set manually,
-      # the success/failure is determined by the last command's return code.
-      self.success ||= ($? == 0)
       switch_branch_back
       comment_on_github
       set_status_on_github
