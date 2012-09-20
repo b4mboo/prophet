@@ -135,7 +135,7 @@ class Pullermann
     shas = nil
     @request.comment = nil
     comments.each do |comment|
-      shas = /master sha# ([\w]+) ; pull sha# ([\w]+)/.match(comment.body)
+      shas = /Merged ([\w]+) into ([\w]+)/.match(comment.body)
       if shas && shas[1] && shas[2]
         # Remember comment to be able to update or delete it later.
         @request.comment = comment
@@ -205,7 +205,7 @@ class Pullermann
       @log.info 'Failing run.'
       'Unfortunately your code is failing after merging this pull request.'
     end
-    message += "\n( master sha# #{@request.target_head_sha} ; pull sha# #{@request.head_sha} )"
+    message += "\n( Merged #{@request.head_sha} into #{@request.target_head_sha} )"
     if old_comment_success? == self.success
       # Replace existing comment's body with the correct connection.
       @log.info "Updating existing #{notion(self.success)} comment."

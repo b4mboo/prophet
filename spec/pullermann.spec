@@ -206,7 +206,7 @@ describe Pullermann do
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([comment])
     # Ensure that we take a look at the comment and compare shas.
     comment.stub_chain(:user, :login).and_return('default_login')
-    comment.should_receive(:body).twice.and_return('Well done! ( master sha# target_head_sha ; pull sha# head_sha )')
+    comment.should_receive(:body).twice.and_return('Well done! ( Merged head_sha into target_head_sha )')
     comment_id = 23
     comment.should_receive(:id).and_return(comment_id)
     @github.should_receive(:delete_comment).with(@project, comment_id)
