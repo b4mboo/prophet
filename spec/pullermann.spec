@@ -93,7 +93,7 @@ describe Pullermann do
     @pullermann.run
   end
 
-  it 'sets the status to :pending while execution is running' do
+  it 'sets statuses of all requests which need an execution to :pending' do
     @pullermann.should_receive(:pull_requests).and_return([@request])
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @github.should_receive(:post).with(

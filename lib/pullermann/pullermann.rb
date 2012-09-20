@@ -35,11 +35,16 @@ class Pullermann
     configure
     self.prepare_block.call
     # Loop through all 'open' pull requests.
-    pull_requests.each do |request|
+    selected_requests = pull_requests.select do |request|
       @request = request
       # Jump to next iteration if source and/or target haven't change since last run.
       next unless run_necessary?
       set_status_on_github
+      true
+    end
+    # Run code on all selected requests.
+    selected_requests.each do |request|
+      @request = request
       # GitHub always creates a merge commit for its 'Merge Button'.
       # Pullermann reuses that commit to run the code on it.
       switch_branch_to_merged_state
