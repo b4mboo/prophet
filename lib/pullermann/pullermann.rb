@@ -227,18 +227,18 @@ class Pullermann
     case self.success
     when true
       state_symbol = :success
-      state_message = 'passing after merging'
+      state_message = 'Pullermann reports success.'
     when false
       state_symbol = :failure
-      state_message = 'failing after merging'
+      state_message = 'Pullermann reports failure.'
     else
       state_symbol = :pending
-      state_message = 'still running for'
+      state_message = 'Pullermann is still running.'
     end
     @github.post(
       "repos/#{@project}/statuses/#{@request.head_sha}", {
         :state => state_symbol,
-        :description => "Tests are #{state_message} this pull request."
+        :description => state_message
       }
     )
   end

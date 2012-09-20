@@ -99,7 +99,7 @@ describe Pullermann do
     @github.should_receive(:post).with(
       "repos/#{@project}/statuses/#{@request.head_sha}", {
         :state => :pending,
-        :description => "Tests are still running for this pull request."
+        :description => 'Pullermann is still running.'
       }
     )
     @github.should_receive :post
@@ -119,7 +119,7 @@ describe Pullermann do
     @github.should_receive(:post).with(
       "repos/#{@project}/statuses/#{@request.head_sha}", {
         :state => :success,
-        :description => "Tests are passing after merging this pull request."
+        :description => 'Pullermann reports success.'
       }
     ).twice
     @pullermann.run
@@ -135,7 +135,7 @@ describe Pullermann do
     @github.should_receive(:post).with(
       "repos/#{@project}/statuses/#{@request.head_sha}", {
         :state => :failure,
-        :description => "Tests are failing after merging this pull request."
+        :description => 'Pullermann reports failure.'
       }
     ).twice
     @pullermann.run
