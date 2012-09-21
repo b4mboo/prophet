@@ -252,7 +252,7 @@ describe Pullermann do
   it 'deletes obsolete comments whenever the request is no longer mergeable' do
     @pullermann.should_receive(:pull_requests).and_return([@request])
     @api_response.should_receive :title
-    @api_response.should_receive(:mergeable).and_return(false)
+    @api_response.should_receive(:mergeable).twice.and_return(false)
     @github.stub_chain(:commits, :first, :sha).and_return('target_head_sha')
     comment = mock 'comment'
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([comment])
@@ -263,6 +263,26 @@ describe Pullermann do
     comment.should_receive(:id).and_return(comment_id)
     @github.should_receive(:delete_comment).with(@project, comment_id)
     @pullermann.should_not_receive :switch_branch_to_merged_state
+    @pullermann.should_not_receive :switch_branch_back
+    @pullermann.should_not_receive :comment_on_github
+    @pullermann.should_not_receive :set_status_on_github
+    @pullermann.run
+  end
+
+  it 'tries to determine whether the request is mergeable if GitHub won\'t tell' do
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @api_response.should_receive :title
+    @api_response.should_receive(:mergeable).twice.and_return(nil)
+    @github.stub_chain(:commits, :first, :sha).and_return('target_head_sha')
+    comment = mock 'comment'
+    @github.should_receive(:issue_comments).with(@project, @request_id).and_return([comment])
+    # Ensure that we take a look at the comment and compare shas.
+    comment.stub_chain(:user, :login).and_return('default_login')
+    comment.should_receive(:body).twice.and_return('Well done! ( Merged head_sha into target_head_sha )')
+    comment_id = 23
+    comment.should_receive(:id).and_return(comment_id)
+    @github.should_receive(:delete_comment).with(@project, comment_id)
+    @pullermann.should_receive :switch_branch_to_merged_state
     @pullermann.should_not_receive :switch_branch_back
     @pullermann.should_not_receive :comment_on_github
     @pullermann.should_not_receive :set_status_on_github

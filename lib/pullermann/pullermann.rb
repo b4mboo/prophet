@@ -167,12 +167,18 @@ class Pullermann
     end
     # If it's not mergeable, we need to delete all comments of former test runs.
     unless @request.content.mergeable
-      @log.info 'Pull request not auto-mergeable. Not running.'
-      if @request.comment
-        @log.info 'Deleting existing comment.'
-        call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
+      # Sometimes GitHub doesn't have a proper boolean value stored.
+      if @request.content.mergeable.nil? && switch_branch_to_merged_state(false)
+        # Pull request is mergeable after all.
+        switch_branch_back
+      else
+        @log.info 'Pull request not auto-mergeable. Not running.'
+        if @request.comment
+          @log.info 'Deleting existing comment.'
+          call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
+        end
+        return false
       end
-      return false
     end
     if @request.comment
       @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
@@ -193,7 +199,7 @@ class Pullermann
     false
   end
 
-  def switch_branch_to_merged_state
+  def switch_branch_to_merged_state(hard = true)
     # Fetch the merge-commit for the pull request.
     # NOTE: This commit is automatically created by 'GitHub Merge Button'.
     # FIXME: Use cheetah to pipe to @log.debug instead of that /dev/null hack.
@@ -201,8 +207,9 @@ class Pullermann
     `git checkout FETCH_HEAD &> /dev/null`
     unless $? == 0
       @log.error 'Unable to switch to merge branch.'
-      abort
+      hard ? abort : false
     end
+    true
   end
 
   def switch_branch_back
