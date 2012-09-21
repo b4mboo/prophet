@@ -364,9 +364,7 @@ describe Pullermann do
   end
 
   it 'resets the success flag after each iteration' do
-    pull_request = mock 'pull request'
-    @pullermann.should_receive(:pull_requests).and_return([pull_request])
-    pull_request.stub! :[]
+    @pullermann.should_receive(:pull_requests).and_return([@request])
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.stub! :set_status_on_github
     @pullermann.stub! :switch_branch_to_merged_state

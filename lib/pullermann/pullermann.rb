@@ -54,6 +54,7 @@ class Pullermann
     # Run code on all selected requests.
     selected_requests.each do |request|
       @request = request
+      @log.info "Running for request ##{@request.id}."
       # GitHub always creates a merge commit for its 'Merge Button'.
       # Pullermann reuses that commit to run the code on it.
       switch_branch_to_merged_state
