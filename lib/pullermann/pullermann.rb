@@ -175,11 +175,11 @@ class Pullermann
     end
     if @request.comment
       @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
-      @log.info "Last test run target sha: '#{shas[1]}', pull sha: '#{shas[2]}'."
-      if self.rerun_on_source_change && (shas[2] != @request.head_sha)
+      @log.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
+      if self.rerun_on_source_change && (shas[1] != @request.head_sha)
         @log.info 'Re-running due to new commit in pull request.'
         return true
-      elsif self.rerun_on_target_change && (shas[1] != @request.target_head_sha)
+      elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
         @log.info 'Re-running due to new commit in target branch.'
         return true
       end
