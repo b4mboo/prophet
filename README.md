@@ -130,7 +130,7 @@ options like this:
         log 'Running tests ...'
         `rake test:all`
         config.success = ($? == 0)
-        log "Tests are #{self.success ? 'passing' : 'failing'}."
+        log "Tests are #{config.success ? 'passing' : 'failing'}."
       end
 
     end
