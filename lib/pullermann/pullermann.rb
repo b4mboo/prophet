@@ -231,7 +231,7 @@ class Pullermann
   def remove_comment
     if @request.comment
       # Remove old comment and reset variable.
-      call_github.delete_comment(@project, @request.comment.id)
+      call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
       @request.comment = nil
     end
   end
