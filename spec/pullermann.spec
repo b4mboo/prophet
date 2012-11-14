@@ -255,8 +255,9 @@ describe Pullermann do
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive :switch_branch_to_merged_state
     @pullermann.should_receive :switch_branch_back
-    @pullermann.should_receive(:set_status_on_github).twice
     @pullermann.stub(:success).and_return(true)
+    @pullermann.should_receive(:set_status_on_github).twice
+    @pullermann.should_receive :remove_comment
     @request.comment = mock 'comment'
     @request.comment.should_receive :id
     @github.should_receive :delete_comment

@@ -50,6 +50,7 @@ class Pullermann
       # Jump to next iteration if source and/or target didn't change since last run.
       next unless run_necessary?
       set_status_on_github
+      remove_comment unless self.reuse_comments
       true
     end
     # Run code on all selected requests.
@@ -225,6 +226,14 @@ class Pullermann
     return unless @request.comment
     # Analyze old comment to see whether it was a successful or a failing one.
     @request.comment.body.include? '( Success: '
+  end
+
+  def remove_comment
+    if @request.comment
+      # Remove old comment and reset variable.
+      call_github.delete_comment(@project, @request.comment.id)
+      @request.comment = nil
+    end
   end
 
   def comment_on_github
