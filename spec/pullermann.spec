@@ -249,6 +249,21 @@ describe Pullermann do
     @pullermann.run
   end
 
+  it 'deletes obsolete comments if reuse is disabled' do
+    @pullermann.reuse_comments = false
+    @pullermann.should_receive(:pull_requests).and_return([@request])
+    @pullermann.should_receive(:run_necessary?).and_return(true)
+    @pullermann.should_receive :switch_branch_to_merged_state
+    @pullermann.should_receive :switch_branch_back
+    @pullermann.should_receive(:set_status_on_github).twice
+    @pullermann.stub(:success).and_return(true)
+    @request.comment = mock 'comment'
+    @request.comment.should_receive :id
+    @github.should_receive :delete_comment
+    @github.should_receive :add_comment
+    @pullermann.run
+  end
+
   it 'deletes obsolete comments whenever the request is no longer mergeable' do
     @pullermann.should_receive(:pull_requests).and_return([@request])
     @api_response.should_receive :title

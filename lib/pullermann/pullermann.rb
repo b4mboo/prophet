@@ -14,7 +14,8 @@ class Pullermann
                 :status_failure,
                 :status_success,
                 :comment_failure,
-                :comment_success
+                :comment_success,
+                :reuse_comments
 
   # Allow configuration blocks being passed to Pullermann.
   # See the README.md for examples on how to call this method.
@@ -96,8 +97,9 @@ class Pullermann
     self.password ||= git_config['github.password']
     self.username_fail ||= self.username
     self.password_fail ||= self.password
-    self.rerun_on_source_change ||= true
-    self.rerun_on_target_change ||= true
+    self.rerun_on_source_change = true if self.rerun_on_source_change.nil?
+    self.rerun_on_target_change = true if self.rerun_on_target_change.nil?
+    self.reuse_comments = true if self.reuse_comments.nil?
     # Allow for custom messages.
     self.status_pending ||= 'Pullermann is still running.'
     self.status_failure ||= 'Pullermann reports failure.'
@@ -235,7 +237,7 @@ class Pullermann
       self.comment_failure + "\n( Failure: "
     end
     message += "Merged #{@request.head_sha} into #{@request.target_head_sha} )"
-    if old_comment_success? == self.success
+    if self.reuse_comments && old_comment_success? == self.success
       # Replace existing comment's body with the correct connection.
       @log.info "Updating existing #{notion(self.success)} comment."
       call_github(self.success).update_comment(@project, @request.comment.id, message)
