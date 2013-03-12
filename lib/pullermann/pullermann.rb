@@ -220,6 +220,8 @@ class Pullermann
     @log.info 'Switching back to original branch.'
     # FIXME: For branches other than master, remember the original branch.
     `git checkout master &> /dev/null`
+    # Clean up potential remains and run garbage collector.
+    `git gc &> /dev/null`
   end
 
   def old_comment_success?
