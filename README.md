@@ -143,6 +143,10 @@ commands:
     git config --global github.login your_github_login_1234567890
     git config --global github.password your_github_password_1234567890
 
+Pullermann runs `git gc` after every run to clean up potential remains and start
+the garbage collector. If you are making heavy use of Pullermann, think about
+running something like `git gc --aggressive --prune=now` every now and then.
+
 
 Thanks
 ------
