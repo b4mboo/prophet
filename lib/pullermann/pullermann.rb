@@ -65,7 +65,7 @@ class Pullermann
         self.exec_block.call
         # Unless self.success has already been set manually,
         # the success/failure is determined by the last command's return code.
-        self.success ||= ($? == 0)
+        self.success ||= ($?.exitstatus == 0)
       rescue Exception => e
         @log.error "Execution block raised an exception: #{e}"
         self.success = false
@@ -208,7 +208,7 @@ class Pullermann
     # FIXME: Use cheetah to pipe to @log.debug instead of that /dev/null hack.
     `git fetch origin refs/pull/#{@request.id}/merge: &> /dev/null`
     `git checkout FETCH_HEAD &> /dev/null`
-    unless $? == 0
+    unless $?.exitstatus == 0
       @log.error 'Unable to switch to merge branch.'
       hard ? abort : false
     end
