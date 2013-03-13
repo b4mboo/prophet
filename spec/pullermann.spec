@@ -60,6 +60,7 @@ describe Pullermann do
     @pullermann.should_receive(:'`').with("git fetch origin refs/pull/#{@request_id}/merge: &> /dev/null")
     @pullermann.should_receive(:'`').with('git checkout FETCH_HEAD &> /dev/null')
     @pullermann.should_receive(:'`').with('git checkout master &> /dev/null')
+    @pullermann.should_receive(:'`').with('git gc &> /dev/null')
     @pullermann.stub :comment_on_github
     @pullermann.stub :set_status_on_github
     @pullermann.run
