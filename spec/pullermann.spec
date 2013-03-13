@@ -195,6 +195,7 @@ describe Pullermann do
   end
 
   it 'posts comments to GitHub' do
+    @pullermann.reuse_comments = false
     @pullermann.should_receive(:pull_requests).and_return([@request])
     @pullermann.should_receive(:run_necessary?).and_return(true)
     @pullermann.should_receive :switch_branch_to_merged_state
