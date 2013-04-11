@@ -1,15 +1,15 @@
-Pullermann
+Prophet
 ==========
-[![Build Status](https://secure.travis-ci.org/b4mboo/pullermann.png)](https://secure.travis-ci.org/b4mboo/pullermann)
+[![Build Status](https://secure.travis-ci.org/b4mboo/prophet.png)](https://secure.travis-ci.org/b4mboo/prophet)
 
 Loops through open pull requests on a GitHub hosted repository and runs your code
-(i.e. tests) on the merged branch. After the run has finished, Pullermann will
+(i.e. tests) on the merged branch. After the run has finished, Prophet will
 post a comment to the pull request stating whether the execution succeeded or failed.
 
-Ever since GitHub released their awesome commit status API, Pullermann also makes use
+Ever since GitHub released their awesome commit status API, Prophet also makes use
 of that and sets statuses according to the execution of your code to 'pending',
 'failure' or 'success'.
-However, keep in mind that the account you are using to run Pullermann needs to have
+However, keep in mind that the account you are using to run Prophet needs to have
 write access to your GitHub repository, to set statuses.
 
 
@@ -19,15 +19,15 @@ Rails projects
 Installation is quite easy. If you are using bundler (i.e. for a Rails project),
 just add the following to your Gemfile:
 
-    gem 'pullermann'
+    gem 'prophet'
 
-To configure Pullermann for your Rails project, just create a new initializer:
+To configure Prophet for your Rails project, just create a new initializer:
 
-    touch config/initializers/pullermann.rb
+    touch config/initializers/prophet.rb
 
-Inside that initializer you can easily change Pullermann's behavior to fit your needs.
+Inside that initializer you can easily change Prophet's behavior to fit your needs.
 
-    Pullermann.setup do |config|
+    Prophet.setup do |config|
       # ...
       # Add custom config block.
       # ...
@@ -36,38 +36,38 @@ Inside that initializer you can easily change Pullermann's behavior to fit your 
 Please read this README's configuration section for further details on
 customization.
 
-Finally, to run Pullermann, just call the corresponding rake task either
+Finally, to run Prophet, just call the corresponding rake task either
 manually or inside your CI (i.e. Jenkins).
 
-    rake pullermann
+    rake prophet
 
 
 Other projects
 --------------
 
-Since you are able to run any command inside Pullermann's execution block,
+Since you are able to run any command inside Prophet's execution block,
 you can use it for any project and programming language. The only requirement
-would be to have Ruby and RubyGems installed, such that you can run Pullermann
+would be to have Ruby and RubyGems installed, such that you can run Prophet
 itself.
 
 Installing the gem manually (without bundler), is simple and straight forward, too.
 
-    gem install pullermann
+    gem install prophet
 
 Afterwards, create an executable file where you require the gem, maybe configure
-it and in the end just call Pullermann manually.
+it and in the end just call Prophet manually.
 
     #!/usr/bin/env ruby
 
-    require 'pullermann'
+    require 'prophet'
 
-    Pullermann.setup do |config|
+    Prophet.setup do |config|
       # ...
       # Add custom config block.
       # ...
     end
 
-    Pullermann.run
+    Prophet.run
 
 Please read this README's configuration section for further details on
 customization.
@@ -76,15 +76,15 @@ customization.
 Configuration
 -------------
 
-Even though you don't really need to configure Pullermann, as it ships with some
+Even though you don't really need to configure Prophet, as it ships with some
 default values for everything, there is an easy way to override all these settings
-and customize Pullermann to fit your needs perfectly.
+and customize Prophet to fit your needs perfectly.
 
 Inside your configuration file - either the initializer in your Rails project or the
 executable script you manually created for your non-Rails project - you can set
 options like this:
 
-    Pullermann.setup do |config|
+    Prophet.setup do |config|
 
       # Setup custom logger.
       config.logger = log = Logger.new(STDOUT)
@@ -123,7 +123,7 @@ options like this:
       end
 
       # Finally, specify which code to run. (Defaults to `rake`.)
-      # NOTE: If you don't set config.success manually to a boolean value,Pullermann
+      # NOTE: If you don't set config.success manually to a boolean value,Prophet
       # will try to determine it by looking at whether the last system call returned
       # 0 (= success).
       config.execution do
@@ -135,7 +135,7 @@ options like this:
 
     end
 
-If you don't specify anything (or don't even create an initializer), Pullermann
+If you don't specify anything (or don't even create an initializer), Prophet
 would fall back to its defaults, thereby trying to take the username/password
 from git config. To set or change these values you can use the following
 commands:
@@ -143,8 +143,8 @@ commands:
     git config --global github.login your_github_login_1234567890
     git config --global github.password your_github_password_1234567890
 
-Pullermann runs `git gc` after every run to clean up potential remains and start
-the garbage collector. If you are making heavy use of Pullermann, think about
+Prophet runs `git gc` after every run to clean up potential remains and start
+the garbage collector. If you are making heavy use of Prophet, think about
 running something like `git gc --aggressive --prune=now` every now and then.
 
 
@@ -156,7 +156,7 @@ told us about this idea at Railsberry 2012 in Krakow.
 
     http://www.youtube.com/watch?v=YFzloW8F-nE
 
-If you are using Pullermann to run your tests, it therefore only mimics one of
+If you are using Prophet to run your tests, it therefore only mimics one of
 TravisCI's features (to a certain degree at least). If you want the full
 experience, go to
 
@@ -164,7 +164,7 @@ experience, go to
 
 and sign in, using your GitHub account.
 
-Pullermann is getting tested with Travis, too.
+Prophet is getting tested with Travis, too.
 
-    https://secure.travis-ci.org/b4mboo/pullermann
+    https://secure.travis-ci.org/b4mboo/prophet
 

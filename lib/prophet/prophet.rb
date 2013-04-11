@@ -1,4 +1,4 @@
-class Pullermann
+class Prophet
 
   attr_accessor :username,
                 :password,
@@ -17,7 +17,7 @@ class Pullermann
                 :comment_success,
                 :reuse_comments
 
-  # Allow configuration blocks being passed to Pullermann.
+  # Allow configuration blocks being passed to Prophet.
   # See the README.md for examples on how to call this method.
   def self.setup
     yield main_instance
@@ -31,7 +31,7 @@ class Pullermann
     self.exec_block = block
   end
 
-  # The main Pullermann task. Call this to run your code.
+  # The main Prophet task. Call this to run your code.
   def self.run
     main_instance.run
   end
@@ -58,7 +58,7 @@ class Pullermann
       @request = request
       @log.info "Running for request ##{@request.id}."
       # GitHub always creates a merge commit for its 'Merge Button'.
-      # Pullermann reuses that commit to run the code on it.
+      # Prophet reuses that commit to run the code on it.
       switch_branch_to_merged_state
       # Run specified code (i.e. tests) for the project.
       begin
@@ -82,7 +82,7 @@ class Pullermann
 
   # Remember the one instance we setup in our application and want to run.
   def self.main_instance
-    @main_instance ||= Pullermann.new
+    @main_instance ||= Prophet.new
   end
 
   def configure
@@ -102,11 +102,11 @@ class Pullermann
     self.rerun_on_target_change = true if self.rerun_on_target_change.nil?
     self.reuse_comments = true if self.reuse_comments.nil?
     # Allow for custom messages.
-    self.status_pending ||= 'Pullermann is still running.'
-    self.status_failure ||= 'Pullermann reports failure.'
-    self.status_success ||= 'Pullermann reports success.'
-    self.comment_failure ||= 'Pullermann reports failure.'
-    self.comment_success ||= 'Pullermann reports success.'
+    self.status_pending ||= 'Prophet is still running.'
+    self.status_failure ||= 'Prophet reports failure.'
+    self.status_success ||= 'Prophet reports success.'
+    self.comment_failure ||= 'Prophet reports failure.'
+    self.comment_success ||= 'Prophet reports success.'
     # Find environment (tasks, project, ...).
     self.prepare_block ||= lambda {}
     self.exec_block ||= lambda { `rake` }

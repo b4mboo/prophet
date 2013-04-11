@@ -1,8 +1,8 @@
-require 'pullermann'
+require 'prophet'
 require 'rails'
 
 class Railtie < Rails::Railtie
   rake_tasks do
-    load 'tasks/pullermann.rake'
+    load 'tasks/prophet.rake.rake'
   end
 end
