@@ -21,6 +21,6 @@ Gem::Specification.new do |s|
   s.description += 'give you an outlook on the future state of your repository '
   s.description += 'in case you accept the request and merge the code.'
 
-  s.add_runtime_dependency 'octokit'
+  s.add_runtime_dependency 'octokit', '~> 1.25.0'
   s.add_runtime_dependency 'rspec'
 end
