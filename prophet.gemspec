@@ -25,5 +25,5 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'faraday', '= 0.8.8'
   s.add_runtime_dependency 'octokit', '= 1.25.0'
 
-  s.add_development_dependency 'rspec', '~> 2.14.1'
+  s.add_development_dependency 'rspec', '= 2.14.1'
 end
