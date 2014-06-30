@@ -1,8 +1,8 @@
-source "http://rubygems.org"
+source 'https://rubygems.org'
 
-gem 'octokit'
+gemspec
 
 group :test do
-  gem 'rspec'
+  gem 'rspec', '= 2.14.1'
   gem 'rake'
 end
