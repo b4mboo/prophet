@@ -4,5 +4,9 @@ rvm:
   - 2.0.0
   - 2.1.0
   - 2.1.1
-before_install: gem install bundler
+before_install:
+  - gem install bundler
+  - gem install faraday_middleware --version 0.9.0
+  - gem install faraday --version 0.8.8
+  - gem install octokit --version 1.25.0
 script: bundle exec rspec -f d spec/*
