@@ -9,7 +9,7 @@ describe Prophet do
     @prophet.logger.level = Logger::FATAL
     # Variables to use inside the tests.
     @request_id = 42
-    @api_response = mock 'api response'
+    @api_response = double 'api response'
     @api_response.stub(:number).and_return(@request_id)
     @api_response.stub_chain(:head, :sha).and_return('pull_head_sha')
     @request = PullRequest.new @api_response
@@ -23,7 +23,7 @@ describe Prophet do
       'remote.origin.url' => 'git@github.com:user/project.git'
     )
     # Stub external dependency @github (remote server).
-    @github = mock 'GitHub'
+    @github = double 'GitHub'
     Octokit::Client.stub(:new).and_return(@github)
     @github.stub :login
     @github.stub(:api_version).and_return('3')
@@ -70,7 +70,7 @@ describe Prophet do
     @prophet.should_receive(:pull_requests).and_return([@request])
     @api_response.should_receive :title
     @api_response.should_receive(:mergeable).and_return(true)
-    comment = mock 'comment'
+    comment = double 'comment'
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([comment])
     # Ensure that we take a look at the comment and compare shas.
     comment.stub_chain(:user, :login).and_return('default_login')
@@ -230,7 +230,7 @@ describe Prophet do
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive(:set_status_on_github).twice
     @prophet.success = true
-    @request.comment = mock 'comment'
+    @request.comment = double 'comment'
     @request.comment.should_receive :id
     @prophet.should_receive(:old_comment_success?).and_return(true)
     @github.should_receive :update_comment
@@ -244,7 +244,7 @@ describe Prophet do
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive(:set_status_on_github).twice
     @prophet.stub(:success).and_return(false)
-    @request.comment = mock 'comment'
+    @request.comment = double 'comment'
     @request.comment.should_receive :id
     @prophet.should_receive(:old_comment_success?).and_return(true)
     @github.should_receive :delete_comment
@@ -260,7 +260,7 @@ describe Prophet do
     @prophet.stub(:success).and_return(true)
     @prophet.should_receive(:set_status_on_github).twice
     @prophet.should_receive :remove_comment
-    @request.comment = mock 'comment'
+    @request.comment = double 'comment'
     @request.comment.should_receive :id
     @github.should_receive :delete_comment
     @github.should_receive :add_comment
@@ -272,7 +272,7 @@ describe Prophet do
     @api_response.should_receive :title
     @api_response.should_receive(:mergeable).twice.and_return(false)
     @github.stub_chain(:commits, :first, :sha).and_return('target_head_sha')
-    comment = mock 'comment'
+    comment = double 'comment'
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([comment])
     # Ensure that we take a look at the comment and compare shas.
     comment.stub_chain(:user, :login).and_return('default_login')
@@ -292,7 +292,7 @@ describe Prophet do
     @api_response.should_receive :title
     @api_response.should_receive(:mergeable).twice.and_return(nil)
     @github.stub_chain(:commits, :first, :sha).and_return('target_head_sha')
-    comment = mock 'comment'
+    comment = double 'comment'
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([comment])
     # Ensure that we take a look at the comment and compare shas.
     comment.stub_chain(:user, :login).and_return('default_login')
@@ -404,11 +404,11 @@ describe Prophet do
   it 'resets the success flag after each iteration' do
     @prophet.should_receive(:pull_requests).and_return([@request])
     @prophet.should_receive(:run_necessary?).and_return(true)
-    @prophet.stub! :set_status_on_github
-    @prophet.stub! :switch_branch_to_merged_state
+    @prophet.stub :set_status_on_github
+    @prophet.stub :switch_branch_to_merged_state
     @prophet.stub_chain(:exec_block, :call)
-    @prophet.stub! :switch_branch_back
-    @prophet.stub! :comment_on_github
+    @prophet.stub :switch_branch_back
+    @prophet.stub :comment_on_github
     @prophet.success = true
     @prophet.run
     @prophet.success.should be_nil
