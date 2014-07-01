@@ -15,6 +15,8 @@ Gem::Specification.new do |s|
   s.summary  = 'An easy way to loop through open pull requests and run code on '
   s.summary  += 'the merged branch.'
 
+  s.license = 'MIT'
+
   s.description = 'Prophet runs custom code (i.e. your project\'s test suite) '
   s.description += 'on open pull requests on GitHub. Afterwards it posts the '
   s.description += 'result as a comment to the respective request. This should '
