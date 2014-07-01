@@ -127,7 +127,10 @@ class Prophet
     github.login
     @log.info "Successfully logged into GitHub (API v#{github.api_version}) with user '#{user}'."
     # Ensure the user has access to desired project.
-    @project ||= /:(.*)\.git/.match(git_config['remote.origin.url'])[1]
+    # NOTE: Both variants should work:
+    # 'ssh://git@github.com:user/project.git'
+    # 'git@github.com:user/project.git'
+    @project ||= /com:(.*)\.git/.match(git_config['remote.origin.url'])[1]
     begin
       github.repo @project
       @log.info "Successfully accessed GitHub project '#{@project}'"

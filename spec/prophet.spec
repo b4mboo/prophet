@@ -414,4 +414,14 @@ describe Prophet do
     @prophet.success.should be_nil
   end
 
+  it 'should read URL from .git/config even with protocol notation' do
+    @prophet.stub(:git_config).and_return(
+      'github.login' => 'default_login',
+      'github.password' => 'default_password',
+      'remote.origin.url' => 'ssh://git@github.com:user/project.git'
+    )
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    @prophet.run
+  end
+
 end
