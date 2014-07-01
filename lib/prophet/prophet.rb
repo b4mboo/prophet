@@ -100,7 +100,7 @@ class Prophet
     self.password_fail ||= self.password
     self.rerun_on_source_change = true if self.rerun_on_source_change.nil?
     self.rerun_on_target_change = true if self.rerun_on_target_change.nil?
-    self.reuse_comments = true if self.reuse_comments.nil?
+    self.reuse_comments = false if self.reuse_comments.nil?
     # Allow for custom messages.
     self.status_pending ||= 'Prophet is still running.'
     self.status_failure ||= 'Prophet reports failure.'

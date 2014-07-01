@@ -222,7 +222,8 @@ describe Prophet do
     @prophet.run
   end
 
-  it 'updates existing comments to reduce noise' do
+  it 'allows to update existing comments to reduce noise' do
+    @prophet.reuse_comments = true
     @prophet.should_receive(:pull_requests).and_return([@request])
     @prophet.should_receive(:run_necessary?).and_return(true)
     @prophet.should_receive :switch_branch_to_merged_state
@@ -252,7 +253,6 @@ describe Prophet do
   end
 
   it 'deletes obsolete comments if reuse is disabled' do
-    @prophet.reuse_comments = false
     @prophet.should_receive(:pull_requests).and_return([@request])
     @prophet.should_receive(:run_necessary?).and_return(true)
     @prophet.should_receive :switch_branch_to_merged_state
