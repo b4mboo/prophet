@@ -105,6 +105,9 @@ options like this:
       # target (i.e. master) changes.
       config.rerun_on_source_change = true
       config.rerun_on_target_change = true
+      
+      # In order to reuse noise, you can choose to reuse & update existing comments.
+      config.reuse_comments = false
 
       # Add custom messages for comments and statuses.
       config.comment_success = 'Well Done! Your tests are still passing.'
@@ -118,8 +121,8 @@ options like this:
       # empty block.
       config.preparation do
         # Example: Setup jenkins.
-        `rake -f /usr/lib/ruby/gems/1.9.1/gems/ci_reporter-1.7.0/stub.rake`
-        `rake ci:setup:testunit`
+        # `rake -f /usr/lib/ruby/gems/1.9.1/gems/ci_reporter-1.7.0/stub.rake`
+        # `rake ci:setup:testunit`
       end
 
       # Finally, specify which code to run. (Defaults to `rake`.)
