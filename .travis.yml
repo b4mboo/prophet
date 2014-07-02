@@ -15,8 +15,9 @@ matrix:
     - rvm: rbx-2.2.3
 before_install:
   - gem install bundler
+  # Unfortunately, these old versions of octokit, faraday, faraday_middleware 
+  # are not found by bundler automatically. Hence a manual installation.
   - gem install faraday_middleware --version 0.9.0
   - gem install faraday --version 0.8.8
   - gem install octokit --version 1.25.0
-  - gem install rspec --version 2.14.1
-script: bundle exec rspec -f d spec/*
+script: bundle exec rspec spec/*
