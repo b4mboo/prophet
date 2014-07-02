@@ -14,7 +14,6 @@ matrix:
   allow_failures:
     - rvm: rbx-2.2.3
 before_install:
-  - gem install bundler
   # Unfortunately, these old versions of octokit, faraday, faraday_middleware 
   # are not found by bundler automatically. Hence a manual installation.
   - gem install faraday_middleware --version 0.9.0
