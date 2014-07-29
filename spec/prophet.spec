@@ -424,4 +424,14 @@ describe Prophet do
     @prophet.run
   end
 
+  it 'should read https URLs from .git/config' do
+    @prophet.stub(:git_config).and_return(
+      'github.login' => 'default_login',
+      'github.password' => 'default_password',
+      'remote.origin.url' => 'https://github.com/user/project.git'
+    )
+    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    @prophet.run
+  end
+
 end
