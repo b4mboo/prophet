@@ -127,7 +127,7 @@ class Prophet
     )
     # Check user login to GitHub.
     github.login
-    @log.info "Successfully logged into GitHub (API v#{github.api_version}) with user '#{user}'."
+    @log.info "Successfully logged into GitHub with user '#{user}'."
     # Ensure the user has access to desired project.
     # NOTE: All three variants should work:
     # 'ssh://git@github.com:user/project.git'
@@ -145,7 +145,7 @@ class Prophet
   end
 
   def pull_requests
-    request_list = @github.pulls @project, 'open'
+    request_list = @github.pulls @project, state: 'open'
     requests = request_list.collect do |request|
       PullRequest.new(@github.pull_request @project, request.number)
     end
