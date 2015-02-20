@@ -15,7 +15,8 @@ class Prophet
                 :status_success,
                 :comment_failure,
                 :comment_success,
-                :reuse_comments
+                :reuse_comments,
+                :status_context
 
   # Allow configuration blocks being passed to Prophet.
   # See the README.md for examples on how to call this method.
@@ -107,6 +108,7 @@ class Prophet
     self.status_success ||= 'Prophet reports success.'
     self.comment_failure ||= 'Prophet reports failure.'
     self.comment_success ||= 'Prophet reports success.'
+    self.status_context ||= 'default'
     # Find environment (tasks, project, ...).
     self.prepare_block ||= lambda {}
     self.exec_block ||= lambda { `rake` }
@@ -284,7 +286,8 @@ class Prophet
     @github.post(
       "repos/#{@project}/statuses/#{@request.head_sha}", {
         :state => state_symbol,
-        :description => state_message
+        :description => state_message,
+        :context => status_context
       }
     )
   end
