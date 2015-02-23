@@ -54,6 +54,7 @@ class Prophet
       remove_comment unless self.reuse_comments
       true
     end
+
     # Run code on all selected requests.
     selected_requests.each do |request|
       @request = request
@@ -108,7 +109,7 @@ class Prophet
     self.status_success ||= 'Prophet reports success.'
     self.comment_failure ||= 'Prophet reports failure.'
     self.comment_success ||= 'Prophet reports success.'
-    self.status_context ||= 'default'
+    self.status_context ||= 'prophet/default'
     # Find environment (tasks, project, ...).
     self.prepare_block ||= lambda {}
     self.exec_block ||= lambda { `rake` }
@@ -163,18 +164,18 @@ class Prophet
     @request.target_head_sha = @github.commits(@project).first.sha
     comments = @github.issue_comments(@project, @request.id)
     comments = comments.select { |c| [username, username_fail].include?(c.user.login) }.reverse
-    # Initialize shas to ensure it will live on after the 'each' block.
-    shas = nil
-    @request.comment = nil
     comments.each do |comment|
-      shas = /Merged ([\w]+) into ([\w]+)/.match(comment.body)
-      if shas && shas[1] && shas[2]
-        # Remember comment to be able to update or delete it later.
-        @request.comment = comment
-        break
-      end
+      @request.comment = comment if /Merged ([\w]+) into ([\w]+)/.match(comment.body)
     end
-    # If it's not mergeable, we need to delete all comments of former test runs.
+
+    statuses = @github.status(@project, @request.head_sha).statuses.select { |s| s.context == self.status_context }
+    if statuses.empty?
+      # If there is no status yet, it has to be a new request.
+      @log.info 'New pull request detected, run needed.'
+      return true
+    end
+
+    # Do not try to run if it's not mergeable
     unless @request.content.mergeable
       # Sometimes GitHub doesn't have a proper boolean value stored.
       if @request.content.mergeable.nil? && switch_branch_to_merged_state(false)
@@ -186,24 +187,28 @@ class Prophet
           @log.info 'Deleting existing comment.'
           call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
         end
+        create_status(:error, "Pull request not auto-mergeable. Not running.")
         return false
       end
     end
-    if @request.comment
-      @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
-      @log.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
-      if self.rerun_on_source_change && (shas[1] != @request.head_sha)
-        @log.info 'Re-running due to new commit in pull request.'
-        return true
-      elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
-        @log.info 'Re-running due to new commit in target branch.'
-        return true
-      end
-    else
-      # If there are no comments yet, it has to be a new request.
-      @log.info 'New pull request detected, run needed.'
-      return true
+
+    # Initialize shas to ensure it will live on after the 'each' block.
+    shas = nil
+    statuses.each do |status|
+      shas = /Merged ([\w]+) into ([\w]+)/.match(status.description)
+      break if shas && shas[1] && shas[2]
     end
+
+    @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
+    @log.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
+    if self.rerun_on_source_change && (shas[1] != @request.head_sha)
+      @log.info 'Re-running due to new commit in pull request.'
+      return true
+    elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
+      @log.info 'Re-running due to new commit in target branch.'
+       return true
+    end
+
     @log.info "Not running for request ##{@request.id}."
     false
   end
@@ -248,12 +253,12 @@ class Prophet
     # Determine comment message.
     message = if self.success
       @log.info 'Successful run.'
-      self.comment_success + "\n( Success: "
+      self.comment_success
     else
       @log.info 'Failing run.'
-      self.comment_failure + "\n( Failure: "
+      self.comment_failure
     end
-    message += "Merged #{@request.head_sha} into #{@request.target_head_sha} )"
+    message += status_string
     if self.reuse_comments && old_comment_success? == self.success
       # Replace existing comment's body with the correct connection.
       @log.info "Updating existing #{notion(self.success)} comment."
@@ -270,6 +275,30 @@ class Prophet
     end
   end
 
+  def status_string
+    case self.success
+      when true
+        " (Merged #{@request.head_sha} into #{@request.target_head_sha})"
+      when false
+        " (Merged #{@request.head_sha} into #{@request.target_head_sha})"
+      else
+        ""
+    end
+  end
+
+  def create_status(state, description)
+    @log.info "Setting status '#{state}': '#{description}'"
+    @github.create_status(
+      @project,
+      @request.head_sha,
+      state,
+      {
+        "description" => description,
+        "context" => status_context
+      }
+    )
+  end
+
   def set_status_on_github
     @log.info 'Updating status on GitHub.'
     case self.success
@@ -283,13 +312,7 @@ class Prophet
       state_symbol = :pending
       state_message = self.status_pending
     end
-    @github.post(
-      "repos/#{@project}/statuses/#{@request.head_sha}", {
-        :state => state_symbol,
-        :description => state_message,
-        :context => status_context
-      }
-    )
+    create_status(state_symbol, state_message + status_string)
   end
 
   def notion(success)
