@@ -113,6 +113,9 @@ options like this:
       # In some cases it might also be desirable to disable the comments completely.
       config.disable_comments = false
 
+      # Configure status context, e.g. in order to distinguish different prophets.
+      config.status_context = 'prophet/unit'
+
       # Add custom messages for comments and statuses.
       config.comment_success = 'Well Done! Your tests are still passing.'
       config.comment_failure = 'Unfortunately your tests are failing.'
