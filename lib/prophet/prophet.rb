@@ -202,14 +202,20 @@ class Prophet
       break if shas && shas[1] && shas[2]
     end
 
-    @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
-    @log.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
-    if self.rerun_on_source_change && (shas[1] != @request.head_sha)
-      @log.info 'Re-running due to new commit in pull request.'
+    if shas
+      @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
+      @log.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
+      if self.rerun_on_source_change && (shas[1] != @request.head_sha)
+        @log.info 'Re-running due to new commit in pull request.'
+        return true
+      elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
+        @log.info 'Re-running due to new commit in target branch.'
+         return true
+      end
+    else
+      # If there are no SHAs yet, it has to be a new request.
+      @log.info 'New pull request detected, run needed.'
       return true
-    elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
-      @log.info 'Re-running due to new commit in target branch.'
-       return true
     end
 
     @log.info "Not running for request ##{@request.id}."
