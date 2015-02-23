@@ -15,6 +15,7 @@ class Prophet
                 :status_success,
                 :comment_failure,
                 :comment_success,
+                :disable_comments,
                 :reuse_comments,
                 :status_context
 
@@ -103,6 +104,7 @@ class Prophet
     self.rerun_on_source_change = true if self.rerun_on_source_change.nil?
     self.rerun_on_target_change = true if self.rerun_on_target_change.nil?
     self.reuse_comments = false if self.reuse_comments.nil?
+    self.disable_comments = false if self.disable_comments.nil?
     # Allow for custom messages.
     self.status_pending ||= 'Prophet is still running.'
     self.status_failure ||= 'Prophet reports failure.'
@@ -250,6 +252,8 @@ class Prophet
   end
 
   def comment_on_github
+    return if self.disable_comments
+
     # Determine comment message.
     message = if self.success
       @log.info 'Successful run.'

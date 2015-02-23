@@ -210,6 +210,18 @@ describe Prophet do
     @prophet.run
   end
 
+  it 'does not post comments to GitHub if disble_comments = true' do
+    @prophet.reuse_comments = false
+    @prophet.disable_comments = true
+    @prophet.should_receive(:pull_requests).and_return([@request])
+    @prophet.should_receive(:run_necessary?).and_return(true)
+    @prophet.should_receive :switch_branch_to_merged_state
+    @prophet.should_receive :switch_branch_back
+    @prophet.should_receive(:set_status_on_github).twice
+    @github.should_not_receive :add_comment
+    @prophet.run
+  end
+
   it 'uses two different users for commenting (success/failure)' do
     config_block = lambda do |config|
       config.username = 'username'

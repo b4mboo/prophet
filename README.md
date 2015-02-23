@@ -91,6 +91,7 @@ options like this:
       log.level = Logger::INFO
 
       # Custom GitHub (GH) username/password to use for commenting on a successful run.
+      # These credentials are also used for setting the status of the pull request.
       config.username = 'foo-success'
       config.password = 'bar'
 
@@ -105,9 +106,12 @@ options like this:
       # target (i.e. master) changes.
       config.rerun_on_source_change = true
       config.rerun_on_target_change = true
-      
+
       # In order to reuse noise, you can choose to reuse & update existing comments.
       config.reuse_comments = false
+
+      # In some cases it might also be desirable to disable the comments completely.
+      config.disable_comments = false
 
       # Add custom messages for comments and statuses.
       config.comment_success = 'Well Done! Your tests are still passing.'
