@@ -108,7 +108,8 @@ describe Prophet do
     @github.should_receive(:create_status).with(
       @project, @request.head_sha, :pending, {
         "description" => "Prophet is still running.",
-        "context" => "prophet/default"
+        "context" => "prophet/default",
+        "target_url" => nil
       }
     ).twice
     @prophet.should_receive :switch_branch_to_merged_state
@@ -124,7 +125,8 @@ describe Prophet do
     @github.should_receive(:create_status).with(
       @project, @request.head_sha, :pending, {
         "description" => "custom pending",
-        "context" => "prophet/default"
+        "context" => "prophet/default",
+        "target_url" => nil
       }
     ).twice
     @prophet.should_receive :switch_branch_to_merged_state
@@ -143,7 +145,8 @@ describe Prophet do
     @github.should_receive(:create_status).with(
       @project, @request.head_sha, :success, {
         "description" => "Prophet reports success. (Merged pull_head_sha into )",
-        "context" => "prophet/default"
+        "context" => "prophet/default",
+        "target_url" => nil
       }
     ).twice
     @prophet.run
@@ -160,7 +163,8 @@ describe Prophet do
     @github.should_receive(:create_status).with(
       @project, @request.head_sha, :success, {
         "description" => "custom success (Merged pull_head_sha into )",
-        "context" => "prophet/default"
+        "context" => "prophet/default",
+        "target_url" => nil
       }
     ).twice
     @prophet.run
@@ -176,7 +180,8 @@ describe Prophet do
     @github.should_receive(:create_status).with(
       @project, @request.head_sha, :failure, {
         "description" => "Prophet reports failure. (Merged pull_head_sha into )",
-        "context" => "prophet/default"
+        "context" => "prophet/default",
+        "target_url" => nil
       }
     ).twice
     @prophet.run
@@ -193,7 +198,26 @@ describe Prophet do
     @github.should_receive(:create_status).with(
       @project, @request.head_sha, :failure, {
         "description" => "custom failure (Merged pull_head_sha into )",
-        "context" => "prophet/default"
+        "context" => "prophet/default",
+        "target_url" => nil
+      }
+    ).twice
+    @prophet.run
+  end
+
+  it 'allows for setting status target URLs' do
+    @prophet.status_target_url = 'http://example.com/details'
+    @prophet.should_receive(:pull_requests).and_return([@request])
+    @prophet.should_receive(:run_necessary?).and_return(true)
+    @prophet.should_receive :switch_branch_to_merged_state
+    @prophet.should_receive :switch_branch_back
+    @prophet.should_receive :comment_on_github
+    @prophet.stub(:success).and_return(false)
+    @github.should_receive(:create_status).with(
+      @project, @request.head_sha, :failure, {
+        "description" => "Prophet reports failure. (Merged pull_head_sha into )",
+        "context" => "prophet/default",
+        "target_url" => "http://example.com/details"
       }
     ).twice
     @prophet.run

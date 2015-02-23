@@ -119,6 +119,7 @@ options like this:
       config.status_pending = 'Tests are still running.'
       config.status_success = 'Tests are passing.'
       config.status_failure = 'Tests are failing.'
+      config.status_target_url = 'http://ci.example.com/'
 
       # If you need to make some system calls before looping through the pull requests,
       # you specify them here. This block will only be executed once and defaults to an

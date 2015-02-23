@@ -17,7 +17,8 @@ class Prophet
                 :comment_success,
                 :disable_comments,
                 :reuse_comments,
-                :status_context
+                :status_context,
+                :status_target_url
 
   # Allow configuration blocks being passed to Prophet.
   # See the README.md for examples on how to call this method.
@@ -298,7 +299,8 @@ class Prophet
       state,
       {
         "description" => description,
-        "context" => status_context
+        "context" => status_context,
+        "target_url" => self.status_target_url
       }
     )
   end
