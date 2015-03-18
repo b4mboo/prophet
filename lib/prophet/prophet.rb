@@ -190,7 +190,7 @@ class Prophet
           @log.info 'Deleting existing comment.'
           call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
         end
-        create_status(:error, "Pull request not auto-mergeable. Not running.")
+        create_status(:error, "Pull request not auto-mergeable. Not running.") if statuses.first.state != 'error'
         return false
       end
     end

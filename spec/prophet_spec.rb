@@ -322,7 +322,7 @@ describe Prophet do
     comment.should_receive(:id).and_return(comment_id)
     statuses = double(
       statuses: [
-        double(context: "prophet/default", description: 'Well done! (Merged head_sha into target_head_sha)')
+        double(context: "prophet/default", description: 'Well done! (Merged head_sha into target_head_sha)', state: 'success')
       ]
     )
     @github.should_receive(:status).with(@project, @request.head_sha).and_return(statuses)
@@ -351,7 +351,7 @@ describe Prophet do
     @github.should_receive(:delete_comment).with(@project, comment_id)
     statuses = double(
       statuses: [
-        double(context: "prophet/default", description: 'Well done! (Merged head_sha into target_head_sha)')
+        double(context: "prophet/default", description: 'Well done! (Merged head_sha into target_head_sha', state: 'success')
       ]
     )
     @github.should_receive(:status).with(@project, @request.head_sha).and_return(statuses)
