@@ -176,6 +176,9 @@ class Prophet
       # If there is no status yet, it has to be a new request.
       @log.info 'New pull request detected, run needed.'
       return true
+    elsif !self.disable_comments && !@request.comment
+      @log.info 'Rerun forced.'
+      return true
     end
 
     # Do not try to run if it's not mergeable
