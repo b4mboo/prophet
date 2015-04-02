@@ -15,7 +15,10 @@ class Prophet
                 :status_success,
                 :comment_failure,
                 :comment_success,
-                :reuse_comments
+                :disable_comments,
+                :reuse_comments,
+                :status_context,
+                :status_target_url
 
   # Allow configuration blocks being passed to Prophet.
   # See the README.md for examples on how to call this method.
@@ -53,6 +56,7 @@ class Prophet
       remove_comment unless self.reuse_comments
       true
     end
+
     # Run code on all selected requests.
     selected_requests.each do |request|
       @request = request
@@ -101,12 +105,14 @@ class Prophet
     self.rerun_on_source_change = true if self.rerun_on_source_change.nil?
     self.rerun_on_target_change = true if self.rerun_on_target_change.nil?
     self.reuse_comments = false if self.reuse_comments.nil?
+    self.disable_comments = false if self.disable_comments.nil?
     # Allow for custom messages.
     self.status_pending ||= 'Prophet is still running.'
     self.status_failure ||= 'Prophet reports failure.'
     self.status_success ||= 'Prophet reports success.'
     self.comment_failure ||= 'Prophet reports failure.'
     self.comment_success ||= 'Prophet reports success.'
+    self.status_context ||= 'prophet/default'
     # Find environment (tasks, project, ...).
     self.prepare_block ||= lambda {}
     self.exec_block ||= lambda { `rake` }
@@ -125,7 +131,7 @@ class Prophet
     )
     # Check user login to GitHub.
     github.login
-    @log.info "Successfully logged into GitHub (API v#{github.api_version}) with user '#{user}'."
+    @log.info "Successfully logged into GitHub with user '#{user}'."
     # Ensure the user has access to desired project.
     # NOTE: All three variants should work:
     # 'ssh://git@github.com:user/project.git'
@@ -143,7 +149,7 @@ class Prophet
   end
 
   def pull_requests
-    request_list = @github.pulls @project, 'open'
+    request_list = @github.pulls @project, state: 'open'
     requests = request_list.collect do |request|
       PullRequest.new(@github.pull_request @project, request.number)
     end
@@ -161,18 +167,21 @@ class Prophet
     @request.target_head_sha = @github.commits(@project).first.sha
     comments = @github.issue_comments(@project, @request.id)
     comments = comments.select { |c| [username, username_fail].include?(c.user.login) }.reverse
-    # Initialize shas to ensure it will live on after the 'each' block.
-    shas = nil
-    @request.comment = nil
     comments.each do |comment|
-      shas = /Merged ([\w]+) into ([\w]+)/.match(comment.body)
-      if shas && shas[1] && shas[2]
-        # Remember comment to be able to update or delete it later.
-        @request.comment = comment
-        break
-      end
+      @request.comment = comment if /Merged ([\w]+) into ([\w]+)/.match(comment.body)
     end
-    # If it's not mergeable, we need to delete all comments of former test runs.
+
+    statuses = @github.status(@project, @request.head_sha).statuses.select { |s| s.context == self.status_context }
+    if statuses.empty?
+      # If there is no status yet, it has to be a new request.
+      @log.info 'New pull request detected, run needed.'
+      return true
+    elsif !self.disable_comments && !@request.comment
+      @log.info 'Rerun forced.'
+      return true
+    end
+
+    # Do not try to run if it's not mergeable
     unless @request.content.mergeable
       # Sometimes GitHub doesn't have a proper boolean value stored.
       if @request.content.mergeable.nil? && switch_branch_to_merged_state(false)
@@ -184,10 +193,19 @@ class Prophet
           @log.info 'Deleting existing comment.'
           call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
         end
+        create_status(:error, "Pull request not auto-mergeable. Not running.") if statuses.first.state != 'error'
         return false
       end
     end
-    if @request.comment
+
+    # Initialize shas to ensure it will live on after the 'each' block.
+    shas = nil
+    statuses.each do |status|
+      shas = /Merged ([\w]+) into ([\w]+)/.match(status.description)
+      break if shas && shas[1] && shas[2]
+    end
+
+    if shas
       @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
       @log.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
       if self.rerun_on_source_change && (shas[1] != @request.head_sha)
@@ -195,13 +213,14 @@ class Prophet
         return true
       elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
         @log.info 'Re-running due to new commit in target branch.'
-        return true
+         return true
       end
     else
-      # If there are no comments yet, it has to be a new request.
+      # If there are no SHAs yet, it has to be a new request.
       @log.info 'New pull request detected, run needed.'
       return true
     end
+
     @log.info "Not running for request ##{@request.id}."
     false
   end
@@ -243,15 +262,17 @@ class Prophet
   end
 
   def comment_on_github
+    return if self.disable_comments
+
     # Determine comment message.
     message = if self.success
       @log.info 'Successful run.'
-      self.comment_success + "\n( Success: "
+      self.comment_success
     else
       @log.info 'Failing run.'
-      self.comment_failure + "\n( Failure: "
+      self.comment_failure
     end
-    message += "Merged #{@request.head_sha} into #{@request.target_head_sha} )"
+    message += status_string
     if self.reuse_comments && old_comment_success? == self.success
       # Replace existing comment's body with the correct connection.
       @log.info "Updating existing #{notion(self.success)} comment."
@@ -268,6 +289,31 @@ class Prophet
     end
   end
 
+  def status_string
+    case self.success
+      when true
+        " (Merged #{@request.head_sha} into #{@request.target_head_sha})"
+      when false
+        " (Merged #{@request.head_sha} into #{@request.target_head_sha})"
+      else
+        ""
+    end
+  end
+
+  def create_status(state, description)
+    @log.info "Setting status '#{state}': '#{description}'"
+    @github.create_status(
+      @project,
+      @request.head_sha,
+      state,
+      {
+        "description" => description,
+        "context" => status_context,
+        "target_url" => self.status_target_url
+      }
+    )
+  end
+
   def set_status_on_github
     @log.info 'Updating status on GitHub.'
     case self.success
@@ -281,12 +327,7 @@ class Prophet
       state_symbol = :pending
       state_message = self.status_pending
     end
-    @github.post(
-      "repos/#{@project}/statuses/#{@request.head_sha}", {
-        :state => state_symbol,
-        :description => state_message
-      }
-    )
+    create_status(state_symbol, state_message + status_string)
   end
 
   def notion(success)

@@ -31,19 +31,20 @@ describe Prophet do
   end
 
   it 'loops through all open pull requests' do
-    @github.should_receive(:pulls).with(@project, 'open').and_return([@api_response])
+    @github.should_receive(:pulls).with(@project, {state: "open"}).and_return([@api_response])
     @github.should_receive(:pull_request).with(@project, @api_response.number).and_return(@api_response)
     PullRequest.should_receive(:new).with(@api_response).and_return(@request)
     @prophet.stub :run_necessary?
     @prophet.run
   end
 
-  it 'checks existing comments to determine whether a new run is necessary' do
+  it 'checks existing status to determine whether a new run is necessary' do
     @prophet.should_receive(:pull_requests).and_return([@request])
     @api_response.should_receive :title
-    @api_response.should_receive(:mergeable).and_return(true)
     # See if we're actually querying for issue comments.
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([])
+    statuses = double(statuses: [])
+    @github.should_receive(:status).with(@project, @request.head_sha).and_return(statuses)
     @github.stub_chain(:commits, :first, :sha).and_return('master_sha')
     # Skip the rest, as we test this in other tests.
     @prophet.stub :switch_branch_to_merged_state
@@ -74,10 +75,16 @@ describe Prophet do
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([comment])
     # Ensure that we take a look at the comment and compare shas.
     comment.stub_chain(:user, :login).and_return('default_login')
+
+    statuses = double(
+      statuses: [
+        double(context: "prophet/default", description: 'Well done! (Merged old_sha into target_head_sha)')
+      ]
+    )
+    @github.should_receive(:status).with(@project, @request.head_sha).and_return(statuses)
+
     @github.stub_chain(:commits, :first, :sha).and_return('master_sha')
     comment.should_receive(:body).and_return('old_sha')
-    @prophet.should_receive :rerun_on_source_change
-    @prophet.should_receive :rerun_on_target_change
     @prophet.should_receive :switch_branch_to_merged_state
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive :comment_on_github
@@ -98,13 +105,13 @@ describe Prophet do
   it 'sets statuses of all requests which need an execution to :pending' do
     @prophet.should_receive(:pull_requests).and_return([@request])
     @prophet.should_receive(:run_necessary?).and_return(true)
-    @github.should_receive(:post).with(
-      "repos/#{@project}/statuses/#{@request.head_sha}", {
-        :state => :pending,
-        :description => 'Prophet is still running.'
+    @github.should_receive(:create_status).with(
+      @project, @request.head_sha, :pending, {
+        "description" => "Prophet is still running.",
+        "context" => "prophet/default",
+        "target_url" => nil
       }
-    )
-    @github.should_receive :post
+    ).twice
     @prophet.should_receive :switch_branch_to_merged_state
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive :comment_on_github
@@ -115,13 +122,13 @@ describe Prophet do
     @prophet.status_pending = 'custom pending'
     @prophet.should_receive(:pull_requests).and_return([@request])
     @prophet.should_receive(:run_necessary?).and_return(true)
-    @github.should_receive(:post).with(
-      "repos/#{@project}/statuses/#{@request.head_sha}", {
-        :state => :pending,
-        :description => 'custom pending'
+    @github.should_receive(:create_status).with(
+      @project, @request.head_sha, :pending, {
+        "description" => "custom pending",
+        "context" => "prophet/default",
+        "target_url" => nil
       }
-    )
-    @github.should_receive :post
+    ).twice
     @prophet.should_receive :switch_branch_to_merged_state
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive :comment_on_github
@@ -135,10 +142,11 @@ describe Prophet do
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive :comment_on_github
     @prophet.stub(:success).and_return(true)
-    @github.should_receive(:post).with(
-      "repos/#{@project}/statuses/#{@request.head_sha}", {
-        :state => :success,
-        :description => 'Prophet reports success.'
+    @github.should_receive(:create_status).with(
+      @project, @request.head_sha, :success, {
+        "description" => "Prophet reports success. (Merged pull_head_sha into )",
+        "context" => "prophet/default",
+        "target_url" => nil
       }
     ).twice
     @prophet.run
@@ -152,10 +160,11 @@ describe Prophet do
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive :comment_on_github
     @prophet.stub(:success).and_return(true)
-    @github.should_receive(:post).with(
-      "repos/#{@project}/statuses/#{@request.head_sha}", {
-        :state => :success,
-        :description => 'custom success'
+    @github.should_receive(:create_status).with(
+      @project, @request.head_sha, :success, {
+        "description" => "custom success (Merged pull_head_sha into )",
+        "context" => "prophet/default",
+        "target_url" => nil
       }
     ).twice
     @prophet.run
@@ -168,10 +177,11 @@ describe Prophet do
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive :comment_on_github
     @prophet.stub(:success).and_return(false)
-    @github.should_receive(:post).with(
-      "repos/#{@project}/statuses/#{@request.head_sha}", {
-        :state => :failure,
-        :description => 'Prophet reports failure.'
+    @github.should_receive(:create_status).with(
+      @project, @request.head_sha, :failure, {
+        "description" => "Prophet reports failure. (Merged pull_head_sha into )",
+        "context" => "prophet/default",
+        "target_url" => nil
       }
     ).twice
     @prophet.run
@@ -185,10 +195,29 @@ describe Prophet do
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive :comment_on_github
     @prophet.stub(:success).and_return(false)
-    @github.should_receive(:post).with(
-      "repos/#{@project}/statuses/#{@request.head_sha}", {
-        :state => :failure,
-        :description => 'custom failure'
+    @github.should_receive(:create_status).with(
+      @project, @request.head_sha, :failure, {
+        "description" => "custom failure (Merged pull_head_sha into )",
+        "context" => "prophet/default",
+        "target_url" => nil
+      }
+    ).twice
+    @prophet.run
+  end
+
+  it 'allows for setting status target URLs' do
+    @prophet.status_target_url = 'http://example.com/details'
+    @prophet.should_receive(:pull_requests).and_return([@request])
+    @prophet.should_receive(:run_necessary?).and_return(true)
+    @prophet.should_receive :switch_branch_to_merged_state
+    @prophet.should_receive :switch_branch_back
+    @prophet.should_receive :comment_on_github
+    @prophet.stub(:success).and_return(false)
+    @github.should_receive(:create_status).with(
+      @project, @request.head_sha, :failure, {
+        "description" => "Prophet reports failure. (Merged pull_head_sha into )",
+        "context" => "prophet/default",
+        "target_url" => "http://example.com/details"
       }
     ).twice
     @prophet.run
@@ -202,6 +231,18 @@ describe Prophet do
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive(:set_status_on_github).twice
     @github.should_receive :add_comment
+    @prophet.run
+  end
+
+  it 'does not post comments to GitHub if disble_comments = true' do
+    @prophet.reuse_comments = false
+    @prophet.disable_comments = true
+    @prophet.should_receive(:pull_requests).and_return([@request])
+    @prophet.should_receive(:run_necessary?).and_return(true)
+    @prophet.should_receive :switch_branch_to_merged_state
+    @prophet.should_receive :switch_branch_back
+    @prophet.should_receive(:set_status_on_github).twice
+    @github.should_not_receive :add_comment
     @prophet.run
   end
 
@@ -279,6 +320,14 @@ describe Prophet do
     comment.should_receive(:body).twice.and_return('Well done! ( Merged head_sha into target_head_sha )')
     comment_id = 23
     comment.should_receive(:id).and_return(comment_id)
+    statuses = double(
+      statuses: [
+        double(context: "prophet/default", description: 'Well done! (Merged head_sha into target_head_sha)', state: 'success')
+      ]
+    )
+    @github.should_receive(:status).with(@project, @request.head_sha).and_return(statuses)
+
+    @github.should_receive(:create_status).with(@project, @request.head_sha, :error, anything).and_return(statuses)
     @github.should_receive(:delete_comment).with(@project, comment_id)
     @prophet.should_not_receive :switch_branch_to_merged_state
     @prophet.should_not_receive :switch_branch_back
@@ -300,6 +349,13 @@ describe Prophet do
     comment_id = 23
     comment.should_receive(:id).and_return(comment_id)
     @github.should_receive(:delete_comment).with(@project, comment_id)
+    statuses = double(
+      statuses: [
+        double(context: "prophet/default", description: 'Well done! (Merged head_sha into target_head_sha', state: 'success')
+      ]
+    )
+    @github.should_receive(:status).with(@project, @request.head_sha).and_return(statuses)
+    @github.should_receive(:create_status).with(@project, @request.head_sha, :error, anything).and_return(statuses)
     @prophet.should_receive :switch_branch_to_merged_state
     @prophet.should_not_receive :switch_branch_back
     @prophet.should_not_receive :comment_on_github
@@ -332,14 +388,14 @@ describe Prophet do
   end
 
   it 'populates configuration variables with default values' do
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    @github.should_receive(:pulls).with(@project, {state: "open"}).and_return([])
     @prophet.run
     @prophet.username.should == 'default_login'
     @prophet.password.should == 'default_password'
     @prophet.username_fail.should == 'default_login'
     @prophet.password_fail.should == 'default_password'
-    @prophet.rerun_on_source_change.should be_true
-    @prophet.rerun_on_target_change.should be_true
+    @prophet.rerun_on_source_change.should be(true)
+    @prophet.rerun_on_target_change.should be(true)
   end
 
   it 'respects configuration values if set manually' do
@@ -356,8 +412,8 @@ describe Prophet do
     @prophet.password.should == 'password'
     @prophet.username_fail.should == 'username_fail'
     @prophet.password_fail.should == 'password_fail'
-    @prophet.rerun_on_source_change.should be_false
-    @prophet.rerun_on_target_change.should be_false
+    @prophet.rerun_on_source_change.should be(false)
+    @prophet.rerun_on_target_change.should be(false)
   end
 
   it 'allows custom commands for preparation' do
@@ -376,7 +432,7 @@ describe Prophet do
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive(:set_status_on_github).twice
     @prophet.stub(:success).and_return(false)
-    @github.should_receive(:add_comment).with(@project, @request_id, include('Failure'))
+    @github.should_receive(:add_comment).with(@project, @request_id, include('failure'))
     @prophet.logger.should_receive(:error).with(include('Preparation'))
     @prophet.run
   end
@@ -396,7 +452,7 @@ describe Prophet do
     @prophet.should_receive :switch_branch_to_merged_state
     @prophet.should_receive :switch_branch_back
     @prophet.should_receive(:set_status_on_github).twice
-    @github.should_receive(:add_comment).with(@project, @request_id, include('Failure'))
+    @github.should_receive(:add_comment).with(@project, @request_id, include('failure'))
     @prophet.logger.should_receive(:error).with(include('Execution'))
     @prophet.run
   end
@@ -420,7 +476,7 @@ describe Prophet do
       'github.password' => 'default_password',
       'remote.origin.url' => 'ssh://git@github.com:user/project.git'
     )
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    @github.should_receive(:pulls).with(@project, {state: "open"}).and_return([])
     @prophet.run
   end
 
@@ -430,7 +486,7 @@ describe Prophet do
       'github.password' => 'default_password',
       'remote.origin.url' => 'https://github.com/user/project.git'
     )
-    @github.should_receive(:pulls).with(@project, 'open').and_return([])
+    @github.should_receive(:pulls).with(@project, {state: "open"}).and_return([])
     @prophet.run
   end
 
