@@ -172,17 +172,17 @@ class Prophet
     end
 
     statuses = @github.status(@project, @request.head_sha).statuses.select { |s| s.context == self.status_context }
-    if statuses.empty?
-      # If there is no status yet, it has to be a new request.
-      @log.info 'New pull request detected, run needed.'
-      return true
-    elsif !self.disable_comments && !@request.comment
-      @log.info 'Rerun forced.'
-      return true
-    end
-
-    # Do not try to run if it's not mergeable
-    unless @request.content.mergeable
+    # Only run if it's mergeable.
+    if @request.content.mergeable
+      if statuses.empty?
+        # If there is no status yet, it has to be a new request.
+        @log.info 'New pull request detected, run needed.'
+        return true
+      elsif !self.disable_comments && !@request.comment
+        @log.info 'Rerun forced.'
+        return true
+      end
+    else
       # Sometimes GitHub doesn't have a proper boolean value stored.
       if @request.content.mergeable.nil? && switch_branch_to_merged_state(false)
         # Pull request is mergeable after all.
