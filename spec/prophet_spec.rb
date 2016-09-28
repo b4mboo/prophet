@@ -41,6 +41,7 @@ describe Prophet do
   it 'checks existing status to determine whether a new run is necessary' do
     @prophet.should_receive(:pull_requests).and_return([@request])
     @api_response.should_receive :title
+    @api_response.should_receive(:mergeable).and_return(true)
     # See if we're actually querying for issue comments.
     @github.should_receive(:issue_comments).with(@project, @request_id).and_return([])
     statuses = double(statuses: [])
