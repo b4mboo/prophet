@@ -1,3 +1,6 @@
+require 'English'
+require 'open3'
+
 class Prophet
 
   attr_accessor :username,
@@ -63,20 +66,21 @@ class Prophet
       logger.info "Running for request ##{@request.id}."
       # GitHub always creates a merge commit for its 'Merge Button'.
       # Prophet reuses that commit to run the code on it.
-      switch_branch_to_merged_state
-      # Run specified code (i.e. tests) for the project.
-      begin
-        self.exec_block.call
-        # Unless self.success has already been set (to true/false) manually,
-        # the success/failure is determined by the last command's return code.
-        self.success = ($? && $?.exitstatus == 0) if self.success.nil?
-      rescue Exception => e
-        logger.error "Execution block raised an exception: #{e}"
-        self.success = false
+      if switch_branch_to_merged_state
+        # Run specified code (i.e. tests) for the project.
+        begin
+          self.exec_block.call
+          # Unless self.success has already been set (to true/false) manually,
+          # the success/failure is determined by the last command's return code.
+          self.success = ($CHILD_STATUS && $CHILD_STATUS.exitstatus == 0) if self.success.nil?
+        rescue Exception => e
+          logger.error "Execution block raised an exception: #{e}"
+          self.success = false
+        end
+        switch_branch_back
+        comment_on_github
+        set_status_on_github
       end
-      switch_branch_back
-      comment_on_github
-      set_status_on_github
       self.success = nil
     end
   end
@@ -229,8 +233,8 @@ class Prophet
     # NOTE: This commit is automatically created by 'GitHub Merge Button'.
     # FIXME: Use cheetah to pipe to logger.debug instead of that /dev/null hack.
     `git fetch origin refs/pull/#{@request.id}/merge: &> /dev/null`
-    `git checkout FETCH_HEAD &> /dev/null`
-    unless ($? && $?.exitstatus == 0)
+    _output, status = Open3.capture2 'git checkout FETCH_HEAD &> /dev/null'
+    if status != 0
       logger.error 'Unable to switch to merge branch.'
       return false
     end

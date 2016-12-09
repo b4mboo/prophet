@@ -1,24 +1,15 @@
 language: ruby
 rvm:
-  - 1.9.3
-  - 2.0.0
-  - 2.1.0
-  - 2.1.1
-  - 2.1.2
-  - 2.2.5
-  - 2.3.1
-  - jruby-19mode
-  - jruby-head
-  - rbx-2.2.3
+  - 2.1.10
+  - 2.2.6
+  - 2.3.3
+  - jruby-9.0.5.0
+  - rbx-2.5.8
 matrix:
   allow_failures:
-    - rvm: jruby-head
-    - rvm: rbx-2.2.3
+    - rvm: jruby-9.0.5.0
+    - rvm: rbx-2.5.8
 before_install:
   - gem install bundler
-  # Unfortunately, these old versions of octokit, faraday, faraday_middleware
-  # are not found by bundler automatically. Hence a manual installation.
-  - gem install faraday_middleware --version 0.9.0
-  - gem install faraday --version 0.8.8
-  - gem install octokit --version 1.25.0
+  - bundle
 script: bundle exec rspec spec/*

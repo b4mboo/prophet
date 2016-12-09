@@ -60,8 +60,7 @@ describe Prophet do
   it 'runs your code on the merged branch' do
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive(:'`').with("git fetch origin refs/pull/#{request_id}/merge: &> /dev/null")
-    prophet.should_receive(:'`').with('git checkout FETCH_HEAD &> /dev/null')
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive(:'`').with('git checkout master &> /dev/null')
     prophet.should_receive(:'`').with('git gc &> /dev/null')
     prophet.stub :comment_on_github
@@ -87,7 +86,7 @@ describe Prophet do
 
     @github.stub_chain(:commits, :first, :sha).and_return('master_sha')
     comment.should_receive(:body).and_return('old_sha')
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.should_receive(:set_status_on_github).twice
@@ -97,7 +96,7 @@ describe Prophet do
   it 'sets the pull request\'s status on GitHub' do
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.should_receive(:set_status_on_github).twice
@@ -114,7 +113,7 @@ describe Prophet do
         "target_url" => nil
       }
     ).twice
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.run
@@ -131,7 +130,7 @@ describe Prophet do
         "target_url" => nil
       }
     ).twice
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.run
@@ -140,7 +139,7 @@ describe Prophet do
   it 'sets the status to :success if execution is successful' do
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.stub(:success).and_return(true)
@@ -158,7 +157,7 @@ describe Prophet do
     prophet.status_success = 'custom success'
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.stub(:success).and_return(true)
@@ -175,7 +174,7 @@ describe Prophet do
   it 'sets the status to :failure if execution is not successful' do
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.stub(:success).and_return(false)
@@ -193,7 +192,7 @@ describe Prophet do
     prophet.status_failure = 'custom failure'
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.stub(:success).and_return(false)
@@ -211,7 +210,7 @@ describe Prophet do
     prophet.status_target_url = 'http://example.com/details'
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive :comment_on_github
     prophet.stub(:success).and_return(false)
@@ -229,7 +228,7 @@ describe Prophet do
     prophet.reuse_comments = false
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     @github.should_receive :add_comment
@@ -241,7 +240,7 @@ describe Prophet do
     prophet.disable_comments = true
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     @github.should_not_receive :add_comment
@@ -256,7 +255,7 @@ describe Prophet do
     config_block.call prophet
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     prophet.stub(:success).and_return(false)
@@ -269,7 +268,7 @@ describe Prophet do
     prophet.reuse_comments = true
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     prophet.success = true
@@ -283,7 +282,7 @@ describe Prophet do
   it 'deletes obsolete comments whenever the result changes' do
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     prophet.stub(:success).and_return(false)
@@ -298,7 +297,7 @@ describe Prophet do
   it 'deletes obsolete comments if reuse is disabled' do
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.stub(:success).and_return(true)
     prophet.should_receive(:set_status_on_github).twice
@@ -369,7 +368,7 @@ describe Prophet do
     prophet.comment_success = 'custom success'
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     prophet.stub(:success).and_return(true)
@@ -381,7 +380,7 @@ describe Prophet do
     prophet.comment_failure = 'custom failure'
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     prophet.stub(:success).and_return(false)
@@ -430,7 +429,7 @@ describe Prophet do
     prophet.prepare_block = lambda { raise 'foo' }
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
+    prophet.should_receive(:switch_branch_to_merged_state).and_return(true)
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     prophet.stub(:success).and_return(false)
@@ -448,10 +447,10 @@ describe Prophet do
   end
 
   it 'reports failure if your code raises an exception' do
+    allow(prophet).to receive(:switch_branch_to_merged_state).and_return(true)
     prophet.exec_block = lambda { raise 'foo' }
     prophet.should_receive(:pull_requests).and_return([request])
     prophet.should_receive(:run_necessary?).and_return(true)
-    prophet.should_receive :switch_branch_to_merged_state
     prophet.should_receive :switch_branch_back
     prophet.should_receive(:set_status_on_github).twice
     @github.should_receive(:add_comment).with(@project, request_id, include('failure'))
@@ -501,8 +500,25 @@ describe Prophet do
 
     it 'executes git merge commands' do
       expect(prophet).to receive(:'`').with "git fetch origin refs/pull/#{request_id}/merge: &> /dev/null"
-      expect(prophet).to receive(:'`').with "git checkout FETCH_HEAD &> /dev/null"
+      expect(Open3).to receive(:capture2).with 'git checkout FETCH_HEAD &> /dev/null'
       subject
+    end
+
+    context 'executing git commands' do
+      before do
+        allow(prophet).to receive(:'`').with "git fetch origin refs/pull/#{request_id}/merge: &> /dev/null"
+        allow(Open3).to receive(:capture2).with('git checkout FETCH_HEAD &> /dev/null').and_return([nil, exit_status])
+      end
+
+      context 'successfully' do
+        let(:exit_status) { 0 }
+        it { is_expected.to be_truthy }
+      end
+
+      context 'failing' do
+        let(:exit_status) { 1 }
+        it { is_expected.to be_falsy }
+      end
     end
   end
 
