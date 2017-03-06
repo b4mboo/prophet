@@ -1,3 +1,6 @@
+require 'English'
+require 'open3'
+
 class Prophet
 
   attr_accessor :username,
@@ -45,7 +48,7 @@ class Prophet
     begin
       self.prepare_block.call
     rescue Exception => e
-      @log.error "Preparation block raised an exception: #{e}"
+      logger.error "Preparation block raised an exception: #{e}"
     end
     # Loop through all 'open' pull requests.
     selected_requests = pull_requests.select do |request|
@@ -60,24 +63,31 @@ class Prophet
     # Run code on all selected requests.
     selected_requests.each do |request|
       @request = request
-      @log.info "Running for request ##{@request.id}."
+      logger.info "Running for request ##{@request.id}."
       # GitHub always creates a merge commit for its 'Merge Button'.
       # Prophet reuses that commit to run the code on it.
-      switch_branch_to_merged_state
-      # Run specified code (i.e. tests) for the project.
-      begin
-        self.exec_block.call
-        # Unless self.success has already been set (to true/false) manually,
-        # the success/failure is determined by the last command's return code.
-        self.success = ($? && $?.exitstatus == 0) if self.success.nil?
-      rescue Exception => e
-        @log.error "Execution block raised an exception: #{e}"
-        self.success = false
+      if switch_branch_to_merged_state
+        # Run specified code (i.e. tests) for the project.
+        begin
+          self.exec_block.call
+          # Unless self.success has already been set (to true/false) manually,
+          # the success/failure is determined by the last command's return code.
+          self.success = ($CHILD_STATUS && $CHILD_STATUS.exitstatus == 0) if self.success.nil?
+        rescue Exception => e
+          logger.error "Execution block raised an exception: #{e}"
+          self.success = false
+        end
+        switch_branch_back
+        comment_on_github
+        set_status_on_github
       end
-      switch_branch_back
-      comment_on_github
-      set_status_on_github
       self.success = nil
+    end
+  end
+
+  def logger
+    @logger ||= Logger.new(STDOUT).tap do |log|
+      log.level = Logger::INFO
     end
   end
 
@@ -90,13 +100,6 @@ class Prophet
   end
 
   def configure
-    # Use existing logger or fall back to a new one with standard log level.
-    if self.logger
-      @log = self.logger
-    else
-      @log = Logger.new(STDOUT)
-      @log.level = Logger::INFO
-    end
     # Set default fall back values for options that aren't set.
     self.username ||= git_config['github.login']
     self.password ||= git_config['github.password']
@@ -131,7 +134,7 @@ class Prophet
     )
     # Check user login to GitHub.
     github.login
-    @log.info "Successfully logged into GitHub with user '#{user}'."
+    logger.info "Successfully logged into GitHub with user '#{user}'."
     # Ensure the user has access to desired project.
     # NOTE: All three variants should work:
     # 'ssh://git@github.com:user/project.git'
@@ -140,10 +143,10 @@ class Prophet
     @project ||= /github\.com[\/:](.*)\.git$/.match(git_config['remote.origin.url'])[1]
     begin
       github.repo @project
-      @log.info "Successfully accessed GitHub project '#{@project}'"
+      logger.info "Successfully accessed GitHub project '#{@project}'"
       github
     rescue Octokit::Unauthorized => e
-      @log.error "Unable to access GitHub project with user '#{user}':\n#{e.message}"
+      logger.error "Unable to access GitHub project with user '#{user}':\n#{e.message}"
       abort
     end
   end
@@ -153,7 +156,7 @@ class Prophet
     requests = request_list.collect do |request|
       PullRequest.new(@github.pull_request @project, request.number)
     end
-    @log.info "Found #{requests.size > 0 ? requests.size : 'no'} open pull requests in '#{@project}'."
+    logger.info "Found #{requests.size > 0 ? requests.size : 'no'} open pull requests in '#{@project}'."
     requests
   end
 
@@ -162,7 +165,7 @@ class Prophet
   # - the pull request has been updated since the last run.
   # - the target (i.e. master) has been updated since the last run.
   def run_necessary?
-    @log.info "Checking pull request ##{@request.id}: #{@request.content.title}"
+    logger.info "Checking pull request ##{@request.id}: #{@request.content.title}"
     # Compare current sha ids of target and source branch with those from the last test run.
     @request.target_head_sha = @github.commits(@project).first.sha
     comments = @github.issue_comments(@project, @request.id)
@@ -176,21 +179,21 @@ class Prophet
     if @request.content.mergeable
       if statuses.empty?
         # If there is no status yet, it has to be a new request.
-        @log.info 'New pull request detected, run needed.'
+        logger.info 'New pull request detected, run needed.'
         return true
       elsif !self.disable_comments && !@request.comment
-        @log.info 'Rerun forced.'
+        logger.info 'Rerun forced.'
         return true
       end
     else
       # Sometimes GitHub doesn't have a proper boolean value stored.
-      if @request.content.mergeable.nil? && switch_branch_to_merged_state(false)
+      if @request.content.mergeable.nil? && switch_branch_to_merged_state
         # Pull request is mergeable after all.
         switch_branch_back
       else
-        @log.info 'Pull request not auto-mergeable. Not running.'
+        logger.info 'Pull request not auto-mergeable. Not running.'
         if @request.comment
-          @log.info 'Deleting existing comment.'
+          logger.info 'Deleting existing comment.'
           call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
         end
         create_status(:error, "Pull request not auto-mergeable. Not running.") if statuses.first.state != 'error'
@@ -206,41 +209,41 @@ class Prophet
     end
 
     if shas
-      @log.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
-      @log.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
+      logger.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
+      logger.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
       if self.rerun_on_source_change && (shas[1] != @request.head_sha)
-        @log.info 'Re-running due to new commit in pull request.'
+        logger.info 'Re-running due to new commit in pull request.'
         return true
       elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
-        @log.info 'Re-running due to new commit in target branch.'
+        logger.info 'Re-running due to new commit in target branch.'
          return true
       end
     else
       # If there are no SHAs yet, it has to be a new request.
-      @log.info 'New pull request detected, run needed.'
+      logger.info 'New pull request detected, run needed.'
       return true
     end
 
-    @log.info "Not running for request ##{@request.id}."
+    logger.info "Not running for request ##{@request.id}."
     false
   end
 
-  def switch_branch_to_merged_state(hard = true)
+  def switch_branch_to_merged_state
     # Fetch the merge-commit for the pull request.
     # NOTE: This commit is automatically created by 'GitHub Merge Button'.
-    # FIXME: Use cheetah to pipe to @log.debug instead of that /dev/null hack.
+    # FIXME: Use cheetah to pipe to logger.debug instead of that /dev/null hack.
     `git fetch origin refs/pull/#{@request.id}/merge: &> /dev/null`
-    `git checkout FETCH_HEAD &> /dev/null`
-    unless ($? && $?.exitstatus == 0)
-      @log.error 'Unable to switch to merge branch.'
-      hard ? abort : false
+    _output, status = Open3.capture2 'git checkout FETCH_HEAD &> /dev/null'
+    if status != 0
+      logger.error 'Unable to switch to merge branch.'
+      return false
     end
     true
   end
 
   def switch_branch_back
-    # FIXME: Use cheetah to pipe to @log.debug instead of that /dev/null hack.
-    @log.info 'Switching back to original branch.'
+    # FIXME: Use cheetah to pipe to logger.debug instead of that /dev/null hack.
+    logger.info 'Switching back to original branch.'
     # FIXME: For branches other than master, remember the original branch.
     `git checkout master &> /dev/null`
     # Clean up potential remains and run garbage collector.
@@ -266,25 +269,25 @@ class Prophet
 
     # Determine comment message.
     message = if self.success
-      @log.info 'Successful run.'
+      logger.info 'Successful run.'
       self.comment_success
     else
-      @log.info 'Failing run.'
+      logger.info 'Failing run.'
       self.comment_failure
     end
     message += status_string
     if self.reuse_comments && old_comment_success? == self.success
       # Replace existing comment's body with the correct connection.
-      @log.info "Updating existing #{notion(self.success)} comment."
+      logger.info "Updating existing #{notion(self.success)} comment."
       call_github(self.success).update_comment(@project, @request.comment.id, message)
     else
       if @request.comment
-        @log.info "Deleting existing #{notion(!self.success)} comment."
+        logger.info "Deleting existing #{notion(!self.success)} comment."
         # Delete old comment with correct connection (if @request.comment exists).
         call_github(!self.success).delete_comment(@project, @request.comment.id)
       end
       # Create new comment with correct connection.
-      @log.info "Adding new #{notion(self.success)} comment."
+      logger.info "Adding new #{notion(self.success)} comment."
       call_github(self.success).add_comment(@project, @request.id, message)
     end
   end
@@ -301,7 +304,7 @@ class Prophet
   end
 
   def create_status(state, description)
-    @log.info "Setting status '#{state}': '#{description}'"
+    logger.info "Setting status '#{state}': '#{description}'"
     @github.create_status(
       @project,
       @request.head_sha,
@@ -315,7 +318,7 @@ class Prophet
   end
 
   def set_status_on_github
-    @log.info 'Updating status on GitHub.'
+    logger.info 'Updating status on GitHub.'
     case self.success
     when true
       state_symbol = :success
