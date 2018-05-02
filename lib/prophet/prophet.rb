@@ -164,64 +164,67 @@ class Prophet
   # - the pull request hasn't been used for a run before.
   # - the pull request has been updated since the last run.
   # - the target (i.e. master) has been updated since the last run.
+  # - the pull request does not originate from a fork (to avoid malicious code execution on CI machines)
   def run_necessary?
     logger.info "Checking pull request ##{@request.id}: #{@request.content.title}"
-    # Compare current sha ids of target and source branch with those from the last test run.
-    @request.target_head_sha = @github.commits(@project).first.sha
-    comments = @github.issue_comments(@project, @request.id)
-    comments = comments.select { |c| [username, username_fail].include?(c.user.login) }.reverse
-    comments.each do |comment|
-      @request.comment = comment if /Merged ([\w]+) into ([\w]+)/.match(comment.body)
-    end
+    unless @request.from_fork
+      # Compare current sha ids of target and source branch with those from the last test run.
+      @request.target_head_sha = @github.commits(@project).first.sha
+      comments = @github.issue_comments(@project, @request.id)
+      comments = comments.select { |c| [username, username_fail].include?(c.user.login) }.reverse
+      comments.each do |comment|
+        @request.comment = comment if /Merged ([\w]+) into ([\w]+)/.match(comment.body)
+      end
 
-    statuses = @github.status(@project, @request.head_sha).statuses.select { |s| s.context == self.status_context }
-    # Only run if it's mergeable.
-    if @request.content.mergeable
-      if statuses.empty?
-        # If there is no status yet, it has to be a new request.
+      statuses = @github.status(@project, @request.head_sha).statuses.select { |s| s.context == self.status_context }
+      # Only run if it's mergeable.
+      if @request.content.mergeable
+        if statuses.empty?
+          # If there is no status yet, it has to be a new request.
+          logger.info 'New pull request detected, run needed.'
+          return true
+        elsif !self.disable_comments && !@request.comment
+          logger.info 'Rerun forced.'
+          return true
+        end
+      else
+        # Sometimes GitHub doesn't have a proper boolean value stored.
+        if @request.content.mergeable.nil? && switch_branch_to_merged_state
+          # Pull request is mergeable after all.
+          switch_branch_back
+        else
+          logger.info 'Pull request not auto-mergeable. Not running.'
+          if @request.comment
+            logger.info 'Deleting existing comment.'
+            call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
+          end
+          create_status(:error, "Pull request not auto-mergeable. Not running.") if statuses.first.state != 'error'
+          return false
+        end
+      end
+
+      # Initialize shas to ensure it will live on after the 'each' block.
+      shas = nil
+      statuses.each do |status|
+        shas = /Merged ([\w]+) into ([\w]+)/.match(status.description)
+        break if shas && shas[1] && shas[2]
+      end
+
+      if shas
+        logger.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
+        logger.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
+        if self.rerun_on_source_change && (shas[1] != @request.head_sha)
+          logger.info 'Re-running due to new commit in pull request.'
+          return true
+        elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
+          logger.info 'Re-running due to new commit in target branch.'
+           return true
+        end
+      else
+        # If there are no SHAs yet, it has to be a new request.
         logger.info 'New pull request detected, run needed.'
         return true
-      elsif !self.disable_comments && !@request.comment
-        logger.info 'Rerun forced.'
-        return true
       end
-    else
-      # Sometimes GitHub doesn't have a proper boolean value stored.
-      if @request.content.mergeable.nil? && switch_branch_to_merged_state
-        # Pull request is mergeable after all.
-        switch_branch_back
-      else
-        logger.info 'Pull request not auto-mergeable. Not running.'
-        if @request.comment
-          logger.info 'Deleting existing comment.'
-          call_github(old_comment_success?).delete_comment(@project, @request.comment.id)
-        end
-        create_status(:error, "Pull request not auto-mergeable. Not running.") if statuses.first.state != 'error'
-        return false
-      end
-    end
-
-    # Initialize shas to ensure it will live on after the 'each' block.
-    shas = nil
-    statuses.each do |status|
-      shas = /Merged ([\w]+) into ([\w]+)/.match(status.description)
-      break if shas && shas[1] && shas[2]
-    end
-
-    if shas
-      logger.info "Current target sha: '#{@request.target_head_sha}', pull sha: '#{@request.head_sha}'."
-      logger.info "Last test run target sha: '#{shas[2]}', pull sha: '#{shas[1]}'."
-      if self.rerun_on_source_change && (shas[1] != @request.head_sha)
-        logger.info 'Re-running due to new commit in pull request.'
-        return true
-      elsif self.rerun_on_target_change && (shas[2] != @request.target_head_sha)
-        logger.info 'Re-running due to new commit in target branch.'
-         return true
-      end
-    else
-      # If there are no SHAs yet, it has to be a new request.
-      logger.info 'New pull request detected, run needed.'
-      return true
     end
 
     logger.info "Not running for request ##{@request.id}."
