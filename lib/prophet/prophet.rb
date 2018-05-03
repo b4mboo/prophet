@@ -227,6 +227,7 @@ class Prophet
       end
     end
 
+    logger.info "Pull request comes from a fork." if @request.from_fork
     logger.info "Not running for request ##{@request.id}."
     false
   end

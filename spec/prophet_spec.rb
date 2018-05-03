@@ -43,6 +43,7 @@ describe Prophet do
 
   it 'checks existing status to determine whether a new run is necessary' do
     prophet.should_receive(:pull_requests).and_return([request])
+    request.should_receive(:from_fork).and_return(false)
     @api_response.should_receive :title
     @api_response.should_receive(:mergeable).and_return(true)
     # See if we're actually querying for issue comments.
@@ -523,4 +524,18 @@ describe Prophet do
     end
   end
 
+  describe '#run_necessary?' do
+    subject { prophet.send :run_necessary? }
+
+    before do
+      prophet.instance_variable_set :@request, request
+      allow(@api_response).to receive(:title)
+    end
+
+    context 'request comes from a fork' do
+      before { request.from_fork = true }
+
+      it { is_expected.to eq false }
+    end
+  end
 end
